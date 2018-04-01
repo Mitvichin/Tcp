@@ -15,9 +15,9 @@ namespace tcpServer
 		private static Dictionary<string, User> users = new Dictionary<string, User>();
 		private static Dictionary<Socket, string> clients = new Dictionary<Socket, string>();
 		private static Dictionary<string, StringBuilder> chronologies = new Dictionary<string, StringBuilder>();
-		public static ManualResetEvent sendDone = new ManualResetEvent(false);
 		private static string basePath = @"C:\TCPServer\";
 
+		//register or log in
 		public static void SignIn(IAsyncResult ar)
 		{
 			string username = "";
@@ -56,11 +56,11 @@ namespace tcpServer
 						{
 							users.Add(username, user);
 							clients.Add(handler, username);
-							MessageDispatcher.Send(handler, "Registered!");
+							Send(handler, "Registered!");
 						}
 						else if (users[user.Username].Online)
 						{
-							MessageDispatcher.Send(handler, "Username already exists! Please, choose another.");
+							Send(handler, "Username already exists! Please, choose another.");
 							handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
 								new AsyncCallback(SignIn), state);
 							return;
@@ -71,7 +71,7 @@ namespace tcpServer
 							users[user.Username].ConnectedTo = handler;
 							users[user.Username].Socket = handler;
 							clients.Add(handler, username);
-							MessageDispatcher.Send(handler, "Logged as " + user.Username);
+							Send(handler, "Logged as " + user.Username);
 						}
 					}
 					state.buffer = new byte[20];
@@ -111,7 +111,7 @@ namespace tcpServer
 					{
 						if (user.Online && user.Socket != handler)
 						{
-							MessageDispatcher.Send(user.Socket, message);
+							Send(user.Socket, message);
 						}
 					}
 					state.sb.Clear();
@@ -179,7 +179,7 @@ namespace tcpServer
 								return;
 							case "onlineUsers":
 								handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
-									new AsyncCallback(GetOnlineUsers), state);
+									new AsyncCallback(SendOnlineUsers), state);
 								return;
 						}
 					}
@@ -195,6 +195,29 @@ namespace tcpServer
 			}
 		}
 
+		public static void Send(Socket handler, string data)
+		{
+			try
+			{
+				string dataLength = Encoding.ASCII.GetByteCount(data).ToString() + '@';
+				byte[] byteData = Encoding.ASCII.GetBytes(data);
+
+				byte[] byteDataLength = Encoding.ASCII.GetBytes(dataLength);
+				handler.BeginSend(byteDataLength, 0, byteDataLength.Length, 0,
+					new AsyncCallback(MessageDispatcher.SendMessage), handler);
+
+				MessageDispatcher.sendDone.WaitOne();
+
+				handler.BeginSend(byteData, 0, byteData.Length, 0,
+						new AsyncCallback(MessageDispatcher.SendMessage), handler);
+			}
+			catch (SocketException)
+			{
+				Console.WriteLine("Connection failure while sending!");
+			}
+		}
+
+		//handles ordinary message
 		private static void ProcessMessage(IAsyncResult ar)
 		{
 			StateObject state = (StateObject)ar.AsyncState;
@@ -219,12 +242,12 @@ namespace tcpServer
 					{
 						string message = MessageBuilder("[", DateTime.Now.Date.ToString("dd/MM/yyyy"), "] ", clients[handler], ":", content);
 
-						MessageDispatcher.Send(user.ConnectedTo, message);
+						Send(user.ConnectedTo, message);
 						CreateChronology(message, user);
 					}
 					else
 					{
-						MessageDispatcher.Send(handler, "Please, select user!(command:username/username)");
+						Send(handler, "Please, select user!(command:username/username)");
 					}
 
 					state.buffer = new byte[20];
@@ -242,8 +265,7 @@ namespace tcpServer
 			}
 		}
 
-
-
+		//connects two people
 		public static void ConnectTwoClients(IAsyncResult ar)
 		{
 			StateObject state = (StateObject)ar.AsyncState;
@@ -267,16 +289,16 @@ namespace tcpServer
 						if (users[currentUser].ConnectedTo != users[username].Socket)
 						{
 							users[currentUser].ConnectedTo = users[username].Socket;
-							MessageDispatcher.Send(handler, "Connected");
+							Send(handler, "Connected");
 						}
 						else
 						{
-							MessageDispatcher.Send(handler, MessageBuilder("Connecting to ", username, " failed!"));
+							Send(handler, MessageBuilder("Connecting to ", username, " failed!"));
 						}
 					}
 					else
 					{
-						MessageDispatcher.Send(handler, "User doesn't exit!");
+						Send(handler, "User doesn't exit!");
 					}
 
 					state.sb.Clear();
@@ -295,6 +317,7 @@ namespace tcpServer
 			}
 		}
 
+		//creates chronology or writes in existing one 
 		private static void CreateChronology(string message, User user)
 		{
 			string currentChronology = "";
@@ -365,11 +388,11 @@ namespace tcpServer
 					if (File.Exists(MessageBuilder(path, chronologyName)))
 					{
 						chronologyContent = File.ReadAllText(MessageBuilder(path, chronologyName));
-						MessageDispatcher.Send(handler, MessageBuilder("CHRONOLOGY: ", Environment.NewLine, chronologyContent));
+						Send(handler, MessageBuilder("CHRONOLOGY: ", Environment.NewLine, chronologyContent));
 					}
 					else
 					{
-						MessageDispatcher.Send(handler, "Chronology doesn't exist!");
+						Send(handler, "Chronology doesn't exist!");
 					}
 
 					state.sb.Clear();
@@ -388,15 +411,14 @@ namespace tcpServer
 			}
 		}
 
-		public static void GetOnlineUsers(IAsyncResult ar)
+		public static void SendOnlineUsers(IAsyncResult ar)
 		{
 			StateObject state = (StateObject)ar.AsyncState;
 			Socket handler = state.workSocket;
 
 			try
 			{
-
-				MessageDispatcher.Send(handler, GetOnlineUsers());
+				Send(handler, GetOnlineUsers());
 				state.buffer = new byte[20];
 				handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
 				 new AsyncCallback(ReadIncomingMessage), state);
@@ -412,6 +434,19 @@ namespace tcpServer
 			if (state.workSocket.Connected)
 			{
 				state.workSocket.Shutdown(SocketShutdown.Both);
+				state.workSocket.Close();
+			}
+
+			foreach (User user in users.Values)
+			{
+				if (user.ConnectedTo.Equals(state.workSocket))
+				{
+					user.ConnectedTo = user.Socket;
+					if (user.Online)
+					{
+						Send(user.Socket, MessageBuilder(clients[state.workSocket], " has disconnected!"));
+					}
+				}
 			}
 
 			if (clients.ContainsKey(state.workSocket) && users.ContainsKey(clients[state.workSocket]))
@@ -420,7 +455,6 @@ namespace tcpServer
 				clients.Remove(state.workSocket);
 			}
 
-			state.workSocket.Close();
 
 			Console.WriteLine(message);
 		}
@@ -441,10 +475,7 @@ namespace tcpServer
 		{
 			string onlineUsers = "Online users: ";
 
-			User[] userCollection = new User[users.Count];
-			users.Values.CopyTo(userCollection, 0);
-
-			foreach (User user in userCollection)
+			foreach (User user in users.Values)
 			{
 				if (user.Online)
 				{

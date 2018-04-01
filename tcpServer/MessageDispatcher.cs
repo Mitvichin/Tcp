@@ -12,7 +12,7 @@ namespace tcpServer
 	public class MessageDispatcher
 	{
 		public static ManualResetEvent allDone = new ManualResetEvent(false);
-		private static ManualResetEvent sendDone = new ManualResetEvent(false);
+		public static ManualResetEvent sendDone = new ManualResetEvent(false);
 
 		public static void StartListening()
 		{
@@ -59,7 +59,7 @@ namespace tcpServer
 
 			try
 			{
-				Send(handler, "Commands: username/username, all/message, chronology/username, onlineUsers/" +
+				ServerServices.Send(handler, "Commands: username/username, all/message, chronology/username, onlineUsers/" +
 					Environment.NewLine + ServerServices.GetOnlineUsers() +
 					Environment.NewLine + "Connected! Please choose your username:");
 				StateObject state = new StateObject();
@@ -78,39 +78,15 @@ namespace tcpServer
 			{
 				Socket handler = (Socket)ar.AsyncState;
 				int bytesSent = handler.EndSend(ar);
-				Console.WriteLine("Sent {0} bytes to client.", bytesSent);
 
 				sendDone.Set();
-
 			}
 			catch (SocketException e)
 			{
 				Console.WriteLine("Connection error occured while sending message!" + e.ToString());
 			}
-
 		}
-		public static void Send(Socket handler, string data)
-		{
-			try
-			{
-				string dataLength = Encoding.ASCII.GetByteCount(data).ToString() + '@';
-				byte[] byteData = Encoding.ASCII.GetBytes(data);
-
-				byte[] byteDataLength = Encoding.ASCII.GetBytes(dataLength);
-				handler.BeginSend(byteDataLength, 0, byteDataLength.Length, 0,
-					new AsyncCallback(SendMessage), handler);
-
-				sendDone.WaitOne();
-
-				handler.BeginSend(byteData, 0, byteData.Length, 0,
-						new AsyncCallback(SendMessage), handler);
 
 
-			}
-			catch (ObjectDisposedException)
-			{
-				Console.WriteLine("Connection failure while sending!");
-			}
-		}
 	}
 }

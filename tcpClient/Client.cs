@@ -41,13 +41,10 @@ namespace tcpClient
 
 				while (true)
 				{
-
 					Console.WriteLine("input message!");
 					string message = Console.ReadLine();
 					Send(client, message);
 					sendDone.WaitOne();
-
-
 				}
 			}
 			catch (Exception e)
@@ -67,7 +64,10 @@ namespace tcpClient
 			}
 			catch (SocketException e)
 			{
-				Console.WriteLine(e.ToString());
+				Console.WriteLine("While connecting issue occurred! Please, restart the program." + e.ToString());
+				Console.WriteLine("Press any key to exit the program!");
+				Console.ReadLine();
+				Environment.Exit(0);
 			}
 		}
 
@@ -80,15 +80,18 @@ namespace tcpClient
 				response = string.Empty;
 
 				client.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0,
-					new AsyncCallback(ReceiveCallback), state);
+					new AsyncCallback(ReceiveMessage), state);
 			}
-			catch (SocketException)
+			catch (SocketException e)
 			{
-				Console.WriteLine("While receiving a connection issue occurred! Please, restart the program.");
+				Console.WriteLine("While receiving a connection issue occurred! Please, restart the program." + e.ToString());
+				Console.WriteLine("Press any key to exit the program!");
+				Console.ReadLine();
+				Environment.Exit(0);
 			}
 		}
 
-		private static void ReceiveCallback(IAsyncResult ar)
+		private static void ReceiveMessage(IAsyncResult ar)
 		{
 			StateObject state = (StateObject)ar.AsyncState;
 			Socket client = state.workSocket;
@@ -109,10 +112,8 @@ namespace tcpClient
 						state.buffer = new byte[bufferSize];
 						state.sb.Clear();
 						client.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
-							new AsyncCallback(ReceiveCallback), state);
+							new AsyncCallback(ReceiveMessage), state);
 					}
-
-
 
 					if (state.sb.Length > 1)
 					{
@@ -122,13 +123,17 @@ namespace tcpClient
 						Console.WriteLine(response);
 						state.sb.Clear();
 						client.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
-								new AsyncCallback(ReceiveCallback), state);
+								new AsyncCallback(ReceiveMessage), state);
 					}
 				}
+				else
+				{
+					throw new SocketException();
+				}
 			}
-			catch (SocketException)
+			catch (SocketException e)
 			{
-				Console.WriteLine("While receiving a connection issue occurred! Please, restart the program.");
+				Console.WriteLine("While receiving a connection issue occurred! Please, restart the program." + e.ToString());
 				Console.WriteLine("Press any key to exit the program!");
 				Console.ReadLine();
 				Environment.Exit(0);
@@ -153,38 +158,37 @@ namespace tcpClient
 
 
 					byte[] dataLength = Encoding.ASCII.GetBytes(messageDetails);
-					client.BeginSend(dataLength, 0, dataLength.Length, 0, new AsyncCallback(SendCallback), client);
+					client.BeginSend(dataLength, 0, dataLength.Length, 0, new AsyncCallback(SendMessage), client);
 
 					sendDone.WaitOne();
 
 					byte[] byteData = Encoding.ASCII.GetBytes(data);
 					client.BeginSend(byteData, 0, byteData.Length, 0,
-						new AsyncCallback(SendCallback), client);
+						new AsyncCallback(SendMessage), client);
 				}
 			}
-			catch (SocketException)
+			catch (SocketException e)
 			{
 				Console.WriteLine("Connection failure!(at send)");
-				Console.WriteLine("Press any key to exit the program!");
+				Console.WriteLine("Press any key to exit the program!" + e.ToString());
 				Console.ReadLine();
 				Environment.Exit(0);
 			}
 		}
 
-		private static void SendCallback(IAsyncResult ar)
+		private static void SendMessage(IAsyncResult ar)
 		{
 			try
 			{
 				Socket client = (Socket)ar.AsyncState;
 				int bytesSent = client.EndSend(ar);
-				Console.WriteLine("Sent {0} bytes to server.", bytesSent);
 
 				sendDone.Set();
 			}
-			catch (SocketException)
+			catch (SocketException e)
 			{
 				Console.WriteLine("While sending a connection issue occurred! Please, restart the program");
-				Console.WriteLine("Press any key to exit the program!");
+				Console.WriteLine("Press any key to exit the program!" + e.ToString());
 				Console.ReadLine();
 				Environment.Exit(0);
 			}
