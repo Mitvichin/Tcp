@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace tcpServer
@@ -14,6 +15,7 @@ namespace tcpServer
 		private static Dictionary<string, User> users = new Dictionary<string, User>();
 		private static Dictionary<Socket, string> clients = new Dictionary<Socket, string>();
 		private static Dictionary<string, StringBuilder> chronologies = new Dictionary<string, StringBuilder>();
+		public static ManualResetEvent sendDone = new ManualResetEvent(false);
 		private static string basePath = @"C:\TCPServer\";
 
 		public static void SignIn(IAsyncResult ar)
@@ -46,12 +48,10 @@ namespace tcpServer
 
 					if (state.buffer.Length == incomingBytes)
 					{
-						Console.WriteLine("Read {0} bytes from socket. \n Data : {1}",
-							username.Length, username);
 						username = state.sb.ToString();
-
 						state.sb.Clear();
 						User user = new User() { Username = username, ConnectedTo = handler, Online = true, Socket = handler };
+
 						if (!users.ContainsKey(user.Username))
 						{
 							users.Add(username, user);
@@ -60,7 +60,6 @@ namespace tcpServer
 						}
 						else if (users[user.Username].Online)
 						{
-
 							MessageDispatcher.Send(handler, "Username already exists! Please, choose another.");
 							handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
 								new AsyncCallback(SignIn), state);
@@ -75,15 +74,16 @@ namespace tcpServer
 							MessageDispatcher.Send(handler, "Logged as " + user.Username);
 						}
 					}
+					state.buffer = new byte[20];
+					handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
+							new AsyncCallback(ReadIncomingMessage), state);
 				}
 
-				MessageDispatcher.allDone.Set();
 			}
 			catch (SocketException)
 			{
 				CloseConnection(state, "Registration or signing in failed! Connection problem occurred.");
 			}
-
 		}
 
 		private static void SendToAll(IAsyncResult ar)
@@ -94,36 +94,36 @@ namespace tcpServer
 
 			try
 			{
-
 				int incomingBytes = handler.EndReceive(ar);
 
-				if (incomingBytes > 0)
+				if (incomingBytes > 0 && state.buffer.Length == incomingBytes)
 				{
 					state.sb.Append(Encoding.ASCII.GetString(
 						state.buffer, 0, incomingBytes));
 					content = state.sb.ToString().Split('/')[1];
 
-					if (state.buffer.Length == incomingBytes)
+					string message = MessageBuilder("[", DateTime.Now.Date.ToString("dd/MM/yyyy"), "][ALL] ", clients[handler], ":", content);
+
+					User[] userCollection = new User[users.Count];
+					users.Values.CopyTo(userCollection, 0);
+
+					foreach (User user in userCollection)
 					{
-						string message = MessageBuilder("[", DateTime.Now.Date.ToString("dd/MM/yyyy"), "][ALL] ", clients[handler], ":", content);
-
-						User[] userCollection = new User[users.Count];
-						users.Values.CopyTo(userCollection, 0);
-
-						foreach (User user in userCollection)
+						if (user.Online && user.Socket != handler)
 						{
-							if (user.Online && user.Socket != handler)
-							{
-								MessageDispatcher.Send(user.Socket, message);
-							}
+							MessageDispatcher.Send(user.Socket, message);
 						}
 					}
+					state.sb.Clear();
+					state.buffer = new byte[20];
+					handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
+							new AsyncCallback(ReadIncomingMessage), state);
+				}
+				else
+				{
+					throw new SocketException();
 				}
 
-				state.sb.Clear();
-				state.buffer = new byte[20];
-				handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
-						new AsyncCallback(ReadIncomingMessage), state);
 			}
 			catch (SocketException)
 			{
@@ -184,6 +184,10 @@ namespace tcpServer
 						}
 					}
 				}
+				else
+				{
+					throw new SocketException();
+				}
 			}
 			catch (SocketException)
 			{
@@ -202,15 +206,12 @@ namespace tcpServer
 			{
 				int incomingBytes = handler.EndReceive(ar);
 
-				if (incomingBytes > 0)
+				if (incomingBytes > 0 && state.buffer.Length == incomingBytes)
 				{
 					state.sb.Append(Encoding.ASCII.GetString(
 						state.buffer, 0, incomingBytes));
 					content = state.sb.ToString();
-				}
 
-				if (state.buffer.Length == incomingBytes)
-				{
 					Console.WriteLine("Read {0} bytes from socket. \n Data : {1}",
 						content.Length, content);
 
@@ -225,11 +226,15 @@ namespace tcpServer
 					{
 						MessageDispatcher.Send(handler, "Please, select user!(command:username/username)");
 					}
-				}
 
-				state.buffer = new byte[20];
-				handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
-						new AsyncCallback(ReadIncomingMessage), state);
+					state.buffer = new byte[20];
+					handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
+							new AsyncCallback(ReadIncomingMessage), state);
+				}
+				else
+				{
+					throw new SocketException();
+				}
 			}
 			catch (SocketException)
 			{
@@ -237,20 +242,7 @@ namespace tcpServer
 			}
 		}
 
-		public static void SendMessage(IAsyncResult ar)
-		{
-			try
-			{
-				Socket handler = (Socket)ar.AsyncState;
-				int bytesSent = handler.EndSend(ar);
-				Console.WriteLine("Sent {0} bytes to client.", bytesSent);
 
-			}
-			catch (Exception e)
-			{
-				Console.WriteLine(e.ToString());
-			}
-		}
 
 		public static void ConnectTwoClients(IAsyncResult ar)
 		{
@@ -267,27 +259,35 @@ namespace tcpServer
 					state.sb.Append(Encoding.ASCII.GetString(
 						state.buffer, 0, incomingBytes));
 					username = state.sb.ToString().Split('/')[1];
-				}
 
-				string currentUser = clients[handler];
+					string currentUser = clients[handler];
 
-				if (users.ContainsKey(username))
-				{
-					if (users[currentUser].ConnectedTo != users[username].Socket)
+					if (users.ContainsKey(username))
 					{
-						users[currentUser].ConnectedTo = users[username].Socket;
-						MessageDispatcher.Send(handler, "Connected");
+						if (users[currentUser].ConnectedTo != users[username].Socket)
+						{
+							users[currentUser].ConnectedTo = users[username].Socket;
+							MessageDispatcher.Send(handler, "Connected");
+						}
+						else
+						{
+							MessageDispatcher.Send(handler, MessageBuilder("Connecting to ", username, " failed!"));
+						}
 					}
+					else
+					{
+						MessageDispatcher.Send(handler, "User doesn't exit!");
+					}
+
+					state.sb.Clear();
+					state.buffer = new byte[20];
+					handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
+					 new AsyncCallback(ReadIncomingMessage), state);
 				}
 				else
 				{
-					MessageDispatcher.Send(handler, "User doesn't exit!");
+					throw new SocketException();
 				}
-
-				state.sb.Clear();
-				state.buffer = new byte[20];
-				handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
-				 new AsyncCallback(ReadIncomingMessage), state);
 			}
 			catch (SocketException)
 			{
@@ -300,8 +300,6 @@ namespace tcpServer
 			string currentChronology = "";
 			string path = basePath + @"Chronologies\";
 			string[] chronologyNames = Directory.EnumerateFiles(path).Select(Path.GetFileName).ToArray();
-
-
 
 			foreach (string name in chronologyNames)
 			{
@@ -355,30 +353,34 @@ namespace tcpServer
 					state.sb.Append(Encoding.ASCII.GetString(
 						state.buffer, 0, incomingBytes));
 					username = state.sb.ToString().Split('/')[1];
-				}
 
-				foreach (string name in chronologyNames)
-				{
-					if (name.Contains(user.Username) && name.Contains(username))
+					foreach (string name in chronologyNames)
 					{
-						chronologyName = name;
+						if (name.Contains(user.Username) && name.Contains(username))
+						{
+							chronologyName = name;
+						}
 					}
-				}
 
-				if (File.Exists(MessageBuilder(path, chronologyName)))
-				{
-					chronologyContent = File.ReadAllText(MessageBuilder(path, chronologyName));
-					MessageDispatcher.Send(handler, MessageBuilder("CHRONOLOGY: ", Environment.NewLine, chronologyContent));
+					if (File.Exists(MessageBuilder(path, chronologyName)))
+					{
+						chronologyContent = File.ReadAllText(MessageBuilder(path, chronologyName));
+						MessageDispatcher.Send(handler, MessageBuilder("CHRONOLOGY: ", Environment.NewLine, chronologyContent));
+					}
+					else
+					{
+						MessageDispatcher.Send(handler, "Chronology doesn't exist!");
+					}
+
+					state.sb.Clear();
+					state.buffer = new byte[20];
+					handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
+					 new AsyncCallback(ReadIncomingMessage), state);
 				}
 				else
 				{
-					MessageDispatcher.Send(handler, "Chronology doesn't exist!");
+					throw new SocketException();
 				}
-
-				state.sb.Clear();
-				state.buffer = new byte[20];
-				handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
-				 new AsyncCallback(ReadIncomingMessage), state);
 			}
 			catch (SocketException)
 			{
@@ -390,6 +392,7 @@ namespace tcpServer
 		{
 			StateObject state = (StateObject)ar.AsyncState;
 			Socket handler = state.workSocket;
+
 			try
 			{
 
@@ -406,10 +409,19 @@ namespace tcpServer
 
 		public static void CloseConnection(StateObject state, string message)
 		{
-			state.workSocket.Shutdown(SocketShutdown.Both);
-			users[clients[state.workSocket]].Online = false;
-			clients.Remove(state.workSocket);
+			if (state.workSocket.Connected)
+			{
+				state.workSocket.Shutdown(SocketShutdown.Both);
+			}
+
+			if (clients.ContainsKey(state.workSocket) && users.ContainsKey(clients[state.workSocket]))
+			{
+				users[clients[state.workSocket]].Online = false;
+				clients.Remove(state.workSocket);
+			}
+
 			state.workSocket.Close();
+
 			Console.WriteLine(message);
 		}
 

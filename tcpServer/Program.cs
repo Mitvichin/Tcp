@@ -8,10 +8,9 @@ using System.Threading;
 namespace tcpServer
 {
 
-	// State object for reading client data asynchronously  
-
 	public class Program
 	{
+
 
 		public static int Main(String[] args)
 		{

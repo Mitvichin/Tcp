@@ -47,7 +47,7 @@ namespace tcpClient
 					Send(client, message);
 					sendDone.WaitOne();
 
-					Receive(client);
+
 				}
 			}
 			catch (Exception e)
@@ -101,23 +101,37 @@ namespace tcpClient
 				{
 					state.sb.Clear();
 					state.sb.Append(Encoding.ASCII.GetString(state.buffer, 0, bytesRead));
+					string message = (state.sb.ToString());
 
-					client.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0,
-						new AsyncCallback(ReceiveCallback), state);
-				}
+					if (message.IndexOf('@') > -1)
+					{
+						int bufferSize = int.Parse(message.Split('@')[0]);
+						state.buffer = new byte[bufferSize];
+						state.sb.Clear();
+						client.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
+							new AsyncCallback(ReceiveCallback), state);
+					}
 
-				if (state.sb.Length > 1)
-				{
-					response = string.Empty;
-					response = state.sb.ToString();
-					receiveDone.Set();
-					Console.WriteLine(response);
-					state.sb.Clear();
+
+
+					if (state.sb.Length > 1)
+					{
+						response = string.Empty;
+						response = state.sb.ToString();
+						receiveDone.Set();
+						Console.WriteLine(response);
+						state.sb.Clear();
+						client.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
+								new AsyncCallback(ReceiveCallback), state);
+					}
 				}
 			}
 			catch (SocketException)
 			{
 				Console.WriteLine("While receiving a connection issue occurred! Please, restart the program.");
+				Console.WriteLine("Press any key to exit the program!");
+				Console.ReadLine();
+				Environment.Exit(0);
 			}
 		}
 
@@ -162,10 +176,7 @@ namespace tcpClient
 			try
 			{
 				Socket client = (Socket)ar.AsyncState;
-
 				int bytesSent = client.EndSend(ar);
-
-
 				Console.WriteLine("Sent {0} bytes to server.", bytesSent);
 
 				sendDone.Set();
@@ -173,6 +184,9 @@ namespace tcpClient
 			catch (SocketException)
 			{
 				Console.WriteLine("While sending a connection issue occurred! Please, restart the program");
+				Console.WriteLine("Press any key to exit the program!");
+				Console.ReadLine();
+				Environment.Exit(0);
 			}
 		}
 	}

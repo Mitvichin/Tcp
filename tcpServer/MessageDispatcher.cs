@@ -12,11 +12,7 @@ namespace tcpServer
 	public class MessageDispatcher
 	{
 		public static ManualResetEvent allDone = new ManualResetEvent(false);
-
-		public MessageDispatcher()
-		{
-
-		}
+		private static ManualResetEvent sendDone = new ManualResetEvent(false);
 
 		public static void StartListening()
 		{
@@ -56,9 +52,10 @@ namespace tcpServer
 
 		private static void AcceptCallback(IAsyncResult ar)
 		{
-			allDone.Set();
 			Socket listener = (Socket)ar.AsyncState;
 			Socket handler = listener.EndAccept(ar);
+
+			allDone.Set();
 
 			try
 			{
@@ -68,11 +65,6 @@ namespace tcpServer
 				StateObject state = new StateObject();
 				state.workSocket = handler;
 				handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0, new AsyncCallback(ServerServices.SignIn), state);
-				allDone.WaitOne();
-
-				state.buffer = new byte[20];
-				handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
-						new AsyncCallback(ServerServices.ReadIncomingMessage), state);
 			}
 			catch (ObjectDisposedException)
 			{
@@ -80,13 +72,40 @@ namespace tcpServer
 			}
 		}
 
+		public static void SendMessage(IAsyncResult ar)
+		{
+			try
+			{
+				Socket handler = (Socket)ar.AsyncState;
+				int bytesSent = handler.EndSend(ar);
+				Console.WriteLine("Sent {0} bytes to client.", bytesSent);
+
+				sendDone.Set();
+
+			}
+			catch (SocketException e)
+			{
+				Console.WriteLine("Connection error occured while sending message!" + e.ToString());
+			}
+
+		}
 		public static void Send(Socket handler, string data)
 		{
 			try
 			{
+				string dataLength = Encoding.ASCII.GetByteCount(data).ToString() + '@';
 				byte[] byteData = Encoding.ASCII.GetBytes(data);
+
+				byte[] byteDataLength = Encoding.ASCII.GetBytes(dataLength);
+				handler.BeginSend(byteDataLength, 0, byteDataLength.Length, 0,
+					new AsyncCallback(SendMessage), handler);
+
+				sendDone.WaitOne();
+
 				handler.BeginSend(byteData, 0, byteData.Length, 0,
-						new AsyncCallback(ServerServices.SendMessage), handler);
+						new AsyncCallback(SendMessage), handler);
+
+
 			}
 			catch (ObjectDisposedException)
 			{
