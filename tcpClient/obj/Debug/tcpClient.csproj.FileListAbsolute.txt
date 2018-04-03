@@ -1,7 +1,13 @@
+D:\Tcp-master\tcpClient\bin\Debug\ReceiveImageHandler.resx
+D:\Tcp-master\tcpClient\bin\Debug\ReceiveImageHandler.cs
+D:\Tcp-master\tcpClient\bin\Debug\ReceiveImageHandler.Designer.cs
 D:\Tcp-master\tcpClient\bin\Debug\testTCP.exe.config
 D:\Tcp-master\tcpClient\bin\Debug\testTCP.exe
 D:\Tcp-master\tcpClient\bin\Debug\testTCP.pdb
+D:\Tcp-master\tcpClient\bin\Debug\ImageHandler.exe
 D:\Tcp-master\tcpClient\bin\Debug\tcpServer.exe
+D:\Tcp-master\tcpClient\bin\Debug\ImageHandler.pdb
+D:\Tcp-master\tcpClient\bin\Debug\ImageHandler.exe.config
 D:\Tcp-master\tcpClient\bin\Debug\tcpServer.pdb
 D:\Tcp-master\tcpClient\bin\Debug\tcpServer.exe.config
 D:\Tcp-master\tcpClient\obj\Debug\tcpClient.csprojResolveAssemblyReference.cache
@@ -9,3 +15,6 @@ D:\Tcp-master\tcpClient\obj\Debug\tcpClient.csproj.CoreCompileInputs.cache
 D:\Tcp-master\tcpClient\obj\Debug\tcpClient.csproj.CopyComplete
 D:\Tcp-master\tcpClient\obj\Debug\testTCP.exe
 D:\Tcp-master\tcpClient\obj\Debug\testTCP.pdb
+D:\Tcp-master\tcpClient\obj\Debug\testTCP.SendImageHandler.resources
+D:\Tcp-master\tcpClient\obj\Debug\tcpClient.csproj.GenerateResource.cache
+D:\Tcp-master\tcpClient\obj\Debug\testTCP.ReceiveImageHandler.resources

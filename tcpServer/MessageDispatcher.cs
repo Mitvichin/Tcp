@@ -12,7 +12,6 @@ namespace tcpServer
 	public class MessageDispatcher
 	{
 		public static ManualResetEvent allDone = new ManualResetEvent(false);
-		public static ManualResetEvent sendDone = new ManualResetEvent(false);
 
 		public static void StartListening()
 		{
@@ -59,9 +58,9 @@ namespace tcpServer
 
 			try
 			{
-				ServerServices.Send(handler, "Commands: username/username, all/message, chronology/username, onlineUsers/" +
-					Environment.NewLine + ServerServices.GetOnlineUsers() +
-					Environment.NewLine + "Connected! Please choose your username:");
+				ServerServices.Send(handler, ServerServices.MessageBuilder("Commands: username/username, all/message, chronology/username, onlineUsers/" +
+					Environment.NewLine, ServerServices.GetOnlineUsers(),
+					Environment.NewLine, "Press enter after command and then write the variable for the command!!!", Environment.NewLine, "Connected! Please choose your username:"));
 				StateObject state = new StateObject();
 				state.workSocket = handler;
 				handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0, new AsyncCallback(ServerServices.SignIn), state);
@@ -78,8 +77,7 @@ namespace tcpServer
 			{
 				Socket handler = (Socket)ar.AsyncState;
 				int bytesSent = handler.EndSend(ar);
-
-				sendDone.Set();
+				Console.WriteLine(bytesSent.ToString());
 			}
 			catch (SocketException e)
 			{

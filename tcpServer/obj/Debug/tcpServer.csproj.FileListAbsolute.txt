@@ -15,7 +15,7 @@ D:\Ilia shits\testTCP\tcpServer\obj\Debug\tcpServer.pdb
 D:\Tcp-master\tcpServer\bin\Debug\tcpServer.exe.config
 D:\Tcp-master\tcpServer\bin\Debug\tcpServer.exe
 D:\Tcp-master\tcpServer\bin\Debug\tcpServer.pdb
-D:\Tcp-master\tcpServer\obj\Debug\tcpServer.csprojResolveAssemblyReference.cache
 D:\Tcp-master\tcpServer\obj\Debug\tcpServer.csproj.CoreCompileInputs.cache
 D:\Tcp-master\tcpServer\obj\Debug\tcpServer.exe
 D:\Tcp-master\tcpServer\obj\Debug\tcpServer.pdb
+D:\Tcp-master\tcpServer\obj\Debug\tcpServer.csprojResolveAssemblyReference.cache

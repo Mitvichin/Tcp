@@ -33,16 +33,15 @@ namespace tcpServer
 					state.sb.Append(Encoding.ASCII.GetString(
 						state.buffer, 0, incomingBytes));
 
-					string bytesCount = (state.sb.ToString());
+					int bytesCount = -1;
 
-					if (bytesCount.IndexOf('@') > -1)
+					if (Int32.TryParse(state.sb.ToString(), out bytesCount))
 					{
-						bytesCount = bytesCount.Split('@')[0];
-						state.buffer = new byte[int.Parse(bytesCount)];
+						state.buffer = new byte[bytesCount];
 						state.sb.Clear();
 
-						handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
-								new AsyncCallback(SignIn), state);
+						state.workSocket.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
+							new AsyncCallback(SignIn), state);
 						return;
 					}
 
@@ -50,7 +49,13 @@ namespace tcpServer
 					{
 						username = state.sb.ToString();
 						state.sb.Clear();
-						User user = new User() { Username = username, ConnectedTo = handler, Online = true, Socket = handler };
+						User user = new User()
+						{
+							Username = username,
+							ConnectedTo = handler,
+							Online = true,
+							Socket = handler
+						};
 
 						if (!users.ContainsKey(user.Username))
 						{
@@ -74,7 +79,8 @@ namespace tcpServer
 							Send(handler, "Logged as " + user.Username);
 						}
 					}
-					state.buffer = new byte[20];
+
+					state.buffer = new byte[StateObject.BufferSize];
 					handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
 							new AsyncCallback(ReadIncomingMessage), state);
 				}
@@ -96,11 +102,13 @@ namespace tcpServer
 			{
 				int incomingBytes = handler.EndReceive(ar);
 
-				if (incomingBytes > 0 && state.buffer.Length == incomingBytes)
+				if (incomingBytes > 0)
 				{
 					state.sb.Append(Encoding.ASCII.GetString(
 						state.buffer, 0, incomingBytes));
-					content = state.sb.ToString().Split('/')[1];
+
+					incomingBytes = Read(state, incomingBytes);
+					content = state.sb.ToString();
 
 					string message = MessageBuilder("[", DateTime.Now.Date.ToString("dd/MM/yyyy"), "][ALL] ", clients[handler], ":", content);
 
@@ -115,7 +123,7 @@ namespace tcpServer
 						}
 					}
 					state.sb.Clear();
-					state.buffer = new byte[20];
+					state.buffer = new byte[StateObject.BufferSize];
 					handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
 							new AsyncCallback(ReadIncomingMessage), state);
 				}
@@ -128,7 +136,6 @@ namespace tcpServer
 			catch (SocketException)
 			{
 				CloseConnection(state, "Send to all failed! Connection problem occurred.");
-
 			}
 		}
 
@@ -147,41 +154,41 @@ namespace tcpServer
 					state.sb.Append(Encoding.ASCII.GetString(
 						state.buffer, 0, incomingBytes));
 
-					string message = (state.sb.ToString());
 
-					if (message.IndexOf('@') > -1)
+					incomingBytes = Read(state, incomingBytes);
+
+					string message = state.sb.ToString();
+
+					state.sb.Clear();
+					state.buffer = new byte[StateObject.BufferSize];
+					switch (message)
 					{
-						string messageLength = message.Split('@')[0];
-						message = message.Split('@')[1];
-						state.buffer = new byte[int.Parse(messageLength)];
-						state.sb.Clear();
+						default:
+							ProcessMessage(message, state);
+							return;
 
-						switch (message)
-						{
-							default:
-								handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
-										new AsyncCallback(ProcessMessage), state);
-								return;
+						case "username/":
+							handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
+									new AsyncCallback(ConnectTwoClients), state);
+							return;
 
-							case "username":
-								handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
-										new AsyncCallback(ConnectTwoClients), state);
-								return;
+						case "all/":
+							handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
+									new AsyncCallback(SendToAll), state);
+							return;
 
-							case "all":
-								handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
-										new AsyncCallback(SendToAll), state);
-								return;
+						case "chronology/":
+							handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
+								new AsyncCallback(RetrieveChronology), state);
+							return;
+						case "onlineUsers/":
+							SendOnlineUsers(state);
+							return;
 
-							case "chronology":
-								handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
-									new AsyncCallback(RetrieveChronology), state);
-								return;
-							case "onlineUsers":
-								handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
-									new AsyncCallback(SendOnlineUsers), state);
-								return;
-						}
+						case "image/":
+							handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
+								new AsyncCallback(SendImage), state);
+							return;
 					}
 				}
 				else
@@ -199,17 +206,13 @@ namespace tcpServer
 		{
 			try
 			{
-				string dataLength = Encoding.ASCII.GetByteCount(data).ToString() + '@';
-				byte[] byteData = Encoding.ASCII.GetBytes(data);
+				int bytes = Encoding.ASCII.GetByteCount(data);
+				string length = bytes.ToString("0000000000");
+				data = length + data;
+				byte[] dataLength = Encoding.ASCII.GetBytes(data);
 
-				byte[] byteDataLength = Encoding.ASCII.GetBytes(dataLength);
-				handler.BeginSend(byteDataLength, 0, byteDataLength.Length, 0,
+				handler.BeginSend(dataLength, 0, dataLength.Length, 0,
 					new AsyncCallback(MessageDispatcher.SendMessage), handler);
-
-				MessageDispatcher.sendDone.WaitOne();
-
-				handler.BeginSend(byteData, 0, byteData.Length, 0,
-						new AsyncCallback(MessageDispatcher.SendMessage), handler);
 			}
 			catch (SocketException)
 			{
@@ -218,50 +221,32 @@ namespace tcpServer
 		}
 
 		//handles ordinary message
-		private static void ProcessMessage(IAsyncResult ar)
+		private static void ProcessMessage(string message, StateObject state)
+
 		{
-			StateObject state = (StateObject)ar.AsyncState;
-			Socket handler = state.workSocket;
-			User user = users[clients[handler]];
-			string content = "";
+			User user = users[clients[state.workSocket]];
 
 			try
 			{
-				int incomingBytes = handler.EndReceive(ar);
-
-				if (incomingBytes > 0 && state.buffer.Length == incomingBytes)
+				if (user.ConnectedTo != state.workSocket)
 				{
-					state.sb.Append(Encoding.ASCII.GetString(
-						state.buffer, 0, incomingBytes));
-					content = state.sb.ToString();
+					message = MessageBuilder("[", DateTime.Now.Date.ToString("dd/MM/yyyy"), "] ", clients[state.workSocket], ":", message);
 
-					Console.WriteLine("Read {0} bytes from socket. \n Data : {1}",
-						content.Length, content);
-
-					if (user.ConnectedTo != handler)
-					{
-						string message = MessageBuilder("[", DateTime.Now.Date.ToString("dd/MM/yyyy"), "] ", clients[handler], ":", content);
-
-						Send(user.ConnectedTo, message);
-						CreateChronology(message, user);
-					}
-					else
-					{
-						Send(handler, "Please, select user!(command:username/username)");
-					}
-
-					state.buffer = new byte[20];
-					handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
-							new AsyncCallback(ReadIncomingMessage), state);
+					Send(user.ConnectedTo, message);
+					CreateWriteChronology(message, user);
 				}
 				else
 				{
-					throw new SocketException();
+					Send(state.workSocket, "Please, select user!(command:username/username)");
 				}
+
+				state.buffer = new byte[10];
+				state.workSocket.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
+						new AsyncCallback(ReadIncomingMessage), state);
 			}
-			catch (SocketException)
+			catch (SocketException e)
 			{
-				CloseConnection(state, "Proccesing message failed!Connection problem occurred.");
+				CloseConnection(state, "Proccesing message failed!Connection problem occurred." + e.ToString());
 			}
 		}
 
@@ -280,12 +265,15 @@ namespace tcpServer
 				{
 					state.sb.Append(Encoding.ASCII.GetString(
 						state.buffer, 0, incomingBytes));
-					username = state.sb.ToString().Split('/')[1];
 
-					string currentUser = clients[handler];
+					incomingBytes = Read(state, incomingBytes);
+					username = state.sb.ToString();
+
 
 					if (users.ContainsKey(username))
 					{
+						string currentUser = clients[handler];
+
 						if (users[currentUser].ConnectedTo != users[username].Socket)
 						{
 							users[currentUser].ConnectedTo = users[username].Socket;
@@ -302,7 +290,7 @@ namespace tcpServer
 					}
 
 					state.sb.Clear();
-					state.buffer = new byte[20];
+					state.buffer = new byte[StateObject.BufferSize];
 					handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
 					 new AsyncCallback(ReadIncomingMessage), state);
 				}
@@ -317,8 +305,55 @@ namespace tcpServer
 			}
 		}
 
+		private static void SendImage(IAsyncResult ar)
+		{
+			StateObject state = (StateObject)ar.AsyncState;
+			Socket handler = state.workSocket;
+			User user = users[clients[handler]];
+			string imgBase64 = "";
+
+			try
+			{
+				int incomingBytes = handler.EndReceive(ar);
+
+				if (incomingBytes > 0)
+				{
+					state.sb.Append(Encoding.ASCII.GetString(
+						state.buffer, 0, incomingBytes));
+
+					incomingBytes = Read(state, incomingBytes);
+
+					if (user.ConnectedTo != handler)
+					{
+						imgBase64 = state.sb.ToString();
+						Send(user.ConnectedTo, imgBase64);
+						Send(user.ConnectedTo, "Send image!");
+						CreateWriteChronology("Send image!", user);
+					}
+					else
+					{
+						Send(handler, "Please, select user!(command:username/username)");
+					}
+
+					state.sb.Clear();
+					state.buffer = new byte[StateObject.BufferSize];
+					handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
+					 new AsyncCallback(ReadIncomingMessage), state);
+				}
+				else
+				{
+					throw new SocketException();
+				}
+			}
+			catch (SocketException)
+			{
+				CloseConnection(state, "Sending image failed! Connection problem occurred!");
+			}
+
+		}
+
 		//creates chronology or writes in existing one 
-		private static void CreateChronology(string message, User user)
+		private static void CreateWriteChronology(string message, User user)
 		{
 			string currentChronology = "";
 			string path = basePath + @"Chronologies\";
@@ -375,7 +410,10 @@ namespace tcpServer
 				{
 					state.sb.Append(Encoding.ASCII.GetString(
 						state.buffer, 0, incomingBytes));
-					username = state.sb.ToString().Split('/')[1];
+
+					incomingBytes = Read(state, incomingBytes);
+
+					username = state.sb.ToString();
 
 					foreach (string name in chronologyNames)
 					{
@@ -396,7 +434,7 @@ namespace tcpServer
 					}
 
 					state.sb.Clear();
-					state.buffer = new byte[20];
+					state.buffer = new byte[StateObject.BufferSize];
 					handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
 					 new AsyncCallback(ReadIncomingMessage), state);
 				}
@@ -411,15 +449,14 @@ namespace tcpServer
 			}
 		}
 
-		public static void SendOnlineUsers(IAsyncResult ar)
+		public static void SendOnlineUsers(StateObject state)
 		{
-			StateObject state = (StateObject)ar.AsyncState;
 			Socket handler = state.workSocket;
 
 			try
 			{
 				Send(handler, GetOnlineUsers());
-				state.buffer = new byte[20];
+				state.buffer = new byte[StateObject.BufferSize];
 				handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
 				 new AsyncCallback(ReadIncomingMessage), state);
 			}
@@ -459,7 +496,7 @@ namespace tcpServer
 			Console.WriteLine(message);
 		}
 
-		private static string MessageBuilder(params string[] messageParts)
+		public static string MessageBuilder(params string[] messageParts)
 		{
 			StringBuilder sb = new StringBuilder();
 
@@ -485,5 +522,22 @@ namespace tcpServer
 
 			return onlineUsers;
 		}
+
+		private static int Read(StateObject state, int incomingBytes)
+		{
+			int bytesCount = -1;
+
+			if (Int32.TryParse(state.sb.ToString(), out bytesCount))
+			{
+				state.buffer = new byte[bytesCount];
+				state.sb.Clear();
+
+				incomingBytes = state.workSocket.Receive(state.buffer, 0, state.buffer.Length, 0);
+				state.sb.Append(Encoding.ASCII.GetString(state.buffer, 0, state.buffer.Length));
+			}
+
+			return incomingBytes;
+		}
 	}
 }
+

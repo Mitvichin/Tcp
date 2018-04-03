@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "tcpServer", "tcpServer\tcpS
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "tcpClient", "tcpClient\tcpClient.csproj", "{BDF49468-2951-423B-9A17-BA618C95DA12}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageHandler", "ImageHandler\ImageHandler.csproj", "{DF9B1437-75BB-4F72-A8F2-63BA83BA0E0F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{BDF49468-2951-423B-9A17-BA618C95DA12}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BDF49468-2951-423B-9A17-BA618C95DA12}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BDF49468-2951-423B-9A17-BA618C95DA12}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DF9B1437-75BB-4F72-A8F2-63BA83BA0E0F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DF9B1437-75BB-4F72-A8F2-63BA83BA0E0F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DF9B1437-75BB-4F72-A8F2-63BA83BA0E0F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DF9B1437-75BB-4F72-A8F2-63BA83BA0E0F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

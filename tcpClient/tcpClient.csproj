@@ -34,6 +34,8 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -45,15 +47,39 @@
     <Compile Include="Client.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ReceiveImageHandler.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ReceiveImageHandler.Designer.cs">
+      <DependentUpon>ReceiveImageHandler.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SendImageHandler.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SendImageHandler.Designer.cs">
+      <DependentUpon>SendImageHandler.cs</DependentUpon>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\ImageHandler\ImageHandler.csproj">
+      <Project>{df9b1437-75bb-4f72-a8f2-63ba83ba0e0f}</Project>
+      <Name>ImageHandler</Name>
+    </ProjectReference>
     <ProjectReference Include="..\tcpServer\tcpServer.csproj">
       <Project>{C071931E-EDA6-49E5-9A63-9916927C3466}</Project>
       <Name>tcpServer</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="ReceiveImageHandler.resx">
+      <DependentUpon>ReceiveImageHandler.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SendImageHandler.resx">
+      <DependentUpon>SendImageHandler.cs</DependentUpon>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -10,8 +10,6 @@ namespace tcpServer
 
 	public class Program
 	{
-
-
 		public static int Main(String[] args)
 		{
 			MessageDispatcher.StartListening();

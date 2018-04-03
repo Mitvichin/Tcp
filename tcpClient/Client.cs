@@ -4,10 +4,11 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using tcpServer;
+using testTCP;
 
 namespace tcpClient
 {
-	public static class Client
+	public class Client
 	{
 		private const int port = 11000;
 
@@ -18,7 +19,8 @@ namespace tcpClient
 		private static ManualResetEvent receiveDone =
 			new ManualResetEvent(false);
 
-		private static String response = String.Empty;
+		private static string imgData = String.Empty;
+
 
 		public static void StartClient()
 		{
@@ -43,7 +45,20 @@ namespace tcpClient
 				{
 					Console.WriteLine("input message!");
 					string message = Console.ReadLine();
-					Send(client, message);
+					switch (message)
+					{
+						default:
+							Send(client, message);
+							break;
+
+						case "image/":
+							Send(client, message);
+							SendImageHandler imgHandler = new SendImageHandler(client);
+							Thread dialogThread = new Thread(() => imgHandler.ShowDialog());
+							dialogThread.SetApartmentState(ApartmentState.STA);
+							dialogThread.Start();
+							break;
+					}
 					sendDone.WaitOne();
 				}
 			}
@@ -77,7 +92,6 @@ namespace tcpClient
 			{
 				StateObject state = new StateObject();
 				state.workSocket = client;
-				response = string.Empty;
 
 				client.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0,
 					new AsyncCallback(ReceiveMessage), state);
@@ -98,30 +112,31 @@ namespace tcpClient
 
 			try
 			{
-				int bytesRead = client.EndReceive(ar);
+				int incomingBytes = client.EndReceive(ar);
 
-				if (bytesRead > 0)
+				if (incomingBytes > 0)
 				{
 					state.sb.Clear();
-					state.sb.Append(Encoding.ASCII.GetString(state.buffer, 0, bytesRead));
-					string message = (state.sb.ToString());
+					state.sb.Append(Encoding.ASCII.GetString(state.buffer, 0, incomingBytes));
 
-					if (message.IndexOf('@') > -1)
+					int bytesCount = -1;
+
+					if (Int32.TryParse(state.sb.ToString(), out bytesCount))
 					{
-						int bufferSize = int.Parse(message.Split('@')[0]);
-						state.buffer = new byte[bufferSize];
+						state.buffer = new byte[bytesCount];
 						state.sb.Clear();
-						client.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
+
+						state.workSocket.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
 							new AsyncCallback(ReceiveMessage), state);
+						return;
 					}
 
 					if (state.sb.Length > 1)
 					{
-						response = string.Empty;
-						response = state.sb.ToString();
-						receiveDone.Set();
-						Console.WriteLine(response);
+						Console.WriteLine(state.sb.ToString());
 						state.sb.Clear();
+						state.buffer = new byte[StateObject.BufferSize];
+
 						client.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
 								new AsyncCallback(ReceiveMessage), state);
 					}
@@ -140,7 +155,7 @@ namespace tcpClient
 			}
 		}
 
-		private static void Send(Socket client, string data)
+		public static void Send(Socket client, string data)
 		{
 			try
 			{
@@ -148,23 +163,11 @@ namespace tcpClient
 				{
 
 					int bytes = Encoding.ASCII.GetByteCount(data);
-					int commandEnd = data.IndexOf('/');
-					string messageDetails = bytes.ToString() + "@";
-
-					if (commandEnd > 0)
-					{
-						messageDetails = messageDetails + data.Substring(0, commandEnd);
-					}
-
-
-					byte[] dataLength = Encoding.ASCII.GetBytes(messageDetails);
+					string length = bytes.ToString("0000000000");
+					data = length + data;
+					byte[] dataLength = Encoding.ASCII.GetBytes(data);
 					client.BeginSend(dataLength, 0, dataLength.Length, 0, new AsyncCallback(SendMessage), client);
 
-					sendDone.WaitOne();
-
-					byte[] byteData = Encoding.ASCII.GetBytes(data);
-					client.BeginSend(byteData, 0, byteData.Length, 0,
-						new AsyncCallback(SendMessage), client);
 				}
 			}
 			catch (SocketException e)
@@ -193,5 +196,22 @@ namespace tcpClient
 				Environment.Exit(0);
 			}
 		}
+
+		private static int Read(StateObject state, int incomingBytes)
+		{
+			int bytesCount = -1;
+
+			if (Int32.TryParse(state.sb.ToString(), out bytesCount))
+			{
+				state.buffer = new byte[bytesCount];
+				state.sb.Clear();
+
+				incomingBytes = state.workSocket.Receive(state.buffer, 0, state.buffer.Length, 0);
+				state.sb.Append(Encoding.ASCII.GetString(state.buffer, 0, state.buffer.Length));
+			}
+
+			return incomingBytes;
+		}
+
 	}
 }
