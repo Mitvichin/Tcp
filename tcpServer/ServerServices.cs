@@ -17,6 +17,8 @@ namespace tcpServer
 		private static Dictionary<string, StringBuilder> chronologies = new Dictionary<string, StringBuilder>();
 		private static string basePath = @"C:\TCPServer\";
 
+		public static ManualResetEvent sendDone = new ManualResetEvent(false);
+
 		//register or log in
 		public static void SignIn(IAsyncResult ar)
 		{
@@ -159,6 +161,7 @@ namespace tcpServer
 
 					string message = state.sb.ToString();
 
+
 					state.sb.Clear();
 					state.buffer = new byte[StateObject.BufferSize];
 					switch (message)
@@ -222,9 +225,10 @@ namespace tcpServer
 
 		//handles ordinary message
 		private static void ProcessMessage(string message, StateObject state)
-
 		{
+
 			User user = users[clients[state.workSocket]];
+			User conectedTO = users[clients[user.ConnectedTo]];
 
 			try
 			{
@@ -240,7 +244,7 @@ namespace tcpServer
 					Send(state.workSocket, "Please, select user!(command:username/username)");
 				}
 
-				state.buffer = new byte[10];
+				state.buffer = new byte[StateObject.BufferSize];
 				state.workSocket.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
 						new AsyncCallback(ReadIncomingMessage), state);
 			}
@@ -309,8 +313,9 @@ namespace tcpServer
 		{
 			StateObject state = (StateObject)ar.AsyncState;
 			Socket handler = state.workSocket;
-			User user = users[clients[handler]];
+			User user = users[clients[state.workSocket]];
 			string imgBase64 = "";
+
 
 			try
 			{
@@ -323,11 +328,12 @@ namespace tcpServer
 
 					incomingBytes = Read(state, incomingBytes);
 
+
 					if (user.ConnectedTo != handler)
 					{
 						imgBase64 = state.sb.ToString();
-						Send(user.ConnectedTo, imgBase64);
-						Send(user.ConnectedTo, "Send image!");
+						Send(user.ConnectedTo, "image*" + imgBase64);
+						//Send(user.ConnectedTo, "Send image!");
 						CreateWriteChronology("Send image!", user);
 					}
 					else
@@ -532,11 +538,29 @@ namespace tcpServer
 				state.buffer = new byte[bytesCount];
 				state.sb.Clear();
 
-				incomingBytes = state.workSocket.Receive(state.buffer, 0, state.buffer.Length, 0);
-				state.sb.Append(Encoding.ASCII.GetString(state.buffer, 0, state.buffer.Length));
+				incomingBytes = state.workSocket.Receive(state.buffer, 0, state.workSocket.Available, 0);
+				state.sb.Append(Encoding.ASCII.GetString(state.buffer, 0, incomingBytes));
+
+				if (incomingBytes < state.buffer.Length)
+				{
+					ReadTillTheEnd(state, incomingBytes, state.buffer.Length);
+				}
+
 			}
 
 			return incomingBytes;
+		}
+
+		private static void ReadTillTheEnd(StateObject state, int incomingBytes, int bufferSize)
+		{
+			do
+			{
+				int availableBytes = state.workSocket.Available;
+				incomingBytes += state.workSocket.Receive(state.buffer, 0, state.workSocket.Available, 0);
+				state.sb.Append(Encoding.ASCII.GetString(state.buffer, 0, availableBytes));
+				string smtasdas = state.sb.ToString();
+			}
+			while (state.workSocket.Available > 0);
 		}
 	}
 }

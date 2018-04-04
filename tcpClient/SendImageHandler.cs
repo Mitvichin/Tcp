@@ -39,16 +39,22 @@ namespace testTCP
 		{
 			Bitmap bmp = new Bitmap(pictureBox.Image);
 			byte[] imgBytes;
-			string imgBase64 = "image/";
-			using (var ms = new MemoryStream())
-			{
-				bmp.Save(ms, pictureBox.Image.RawFormat);
-				imgBytes = ms.ToArray();
-			}
+			string imgBase64 = string.Empty;
+			//using (var ms = new MemoryStream())
+			//{
+			//	bmp.Save(ms, pictureBox.Image.RawFormat);
+			//	imgBytes = ms.ToArray();
+			//}
 
-			imgBase64 += Convert.ToBase64String(imgBytes);
+			ImageConverter ic = new ImageConverter();
+			byte[] buffer = (byte[])ic.ConvertTo(pictureBox.Image, typeof(byte[]));
+			imgBase64 = Convert.ToBase64String(
+				buffer,
+				Base64FormattingOptions.InsertLineBreaks);
+
 
 			Client.Send(client, imgBase64);
+			Client.sendDone.WaitOne();
 			Application.Exit();
 		}
 	}

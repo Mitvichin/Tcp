@@ -78,6 +78,7 @@ namespace tcpServer
 				Socket handler = (Socket)ar.AsyncState;
 				int bytesSent = handler.EndSend(ar);
 				Console.WriteLine(bytesSent.ToString());
+				ServerServices.sendDone.Set();
 			}
 			catch (SocketException e)
 			{

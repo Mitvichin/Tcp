@@ -1,12 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace testTCP
@@ -23,15 +18,28 @@ namespace testTCP
 
 		private void saveBtn_Click(object sender, EventArgs e)
 		{
-			using (var folderBrowserDialog = new FolderBrowserDialog())
-			{
-				DialogResult dialogResult = folderBrowserDialog.ShowDialog();
 
-				if (DialogResult == DialogResult.OK && !string.IsNullOrWhiteSpace(folderBrowserDialog.SelectedPath))
+
+			Bitmap imgBmp = new Bitmap(pictureBox.Image);
+			SaveFileDialog sfd = new SaveFileDialog();
+			sfd.Filter = "Images|*.png;*.bmp;*.jpg";
+			ImageFormat format = ImageFormat.Png;
+			if (sfd.ShowDialog() == DialogResult.OK)
+			{
+				string ext = System.IO.Path.GetExtension(sfd.FileName);
+				switch (ext)
 				{
-					pictureBox.Image.Save(folderBrowserDialog.SelectedPath);
+					case ".jpg":
+						format = ImageFormat.Jpeg;
+						break;
+					case ".bmp":
+						format = ImageFormat.Bmp;
+						break;
 				}
+				imgBmp.Save(sfd.FileName, format);
 			}
+
+			Application.Exit();
 		}
 
 		private void closeBtn_Click(object sender, EventArgs e)
@@ -46,13 +54,17 @@ namespace testTCP
 
 		private void DisplayImg()
 		{
+			pictureBox.SizeMode = PictureBoxSizeMode.Zoom;
+
 			if (!string.IsNullOrEmpty(imgBase64))
 			{
-				byte[] imgData = Convert.FromBase64String(imgBase64);
-				using (MemoryStream ms = new MemoryStream(imgData))
-				{
-					pictureBox.Image = Image.FromStream(ms);
-				}
+
+				string converted = imgBase64.Replace('-', '+');
+				converted = converted.Replace('_', '/');
+				byte[] imgData = Convert.FromBase64String(converted);
+
+				ImageConverter ic = new ImageConverter();
+				pictureBox.Image = ic.ConvertFrom(imgData) as Image;
 			}
 		}
 	}

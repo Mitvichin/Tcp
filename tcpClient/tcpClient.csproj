@@ -64,10 +64,6 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\ImageHandler\ImageHandler.csproj">
-      <Project>{df9b1437-75bb-4f72-a8f2-63ba83ba0e0f}</Project>
-      <Name>ImageHandler</Name>
-    </ProjectReference>
     <ProjectReference Include="..\tcpServer\tcpServer.csproj">
       <Project>{C071931E-EDA6-49E5-9A63-9916927C3466}</Project>
       <Name>tcpServer</Name>

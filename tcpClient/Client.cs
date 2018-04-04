@@ -14,7 +14,7 @@ namespace tcpClient
 
 		private static ManualResetEvent connectDone =
 			new ManualResetEvent(false);
-		private static ManualResetEvent sendDone =
+		public static ManualResetEvent sendDone =
 			new ManualResetEvent(false);
 		private static ManualResetEvent receiveDone =
 			new ManualResetEvent(false);
@@ -118,27 +118,47 @@ namespace tcpClient
 				{
 					state.sb.Clear();
 					state.sb.Append(Encoding.ASCII.GetString(state.buffer, 0, incomingBytes));
+					incomingBytes = Read(state, incomingBytes);
 
-					int bytesCount = -1;
-
-					if (Int32.TryParse(state.sb.ToString(), out bytesCount))
-					{
-						state.buffer = new byte[bytesCount];
-						state.sb.Clear();
-
-						state.workSocket.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
-							new AsyncCallback(ReceiveMessage), state);
-						return;
-					}
 
 					if (state.sb.Length > 1)
 					{
-						Console.WriteLine(state.sb.ToString());
-						state.sb.Clear();
-						state.buffer = new byte[StateObject.BufferSize];
+						string message = state.sb.ToString();
+						int commandEnd = message.IndexOf('*');
+						string command = "";
 
-						client.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
-								new AsyncCallback(ReceiveMessage), state);
+						if (message.Contains("image*"))
+						{
+							command = message.Substring(0, commandEnd + 1);
+						}
+
+						switch (command)
+						{
+							default:
+								Console.WriteLine(message);
+								state.sb.Clear();
+								state.buffer = new byte[StateObject.BufferSize];
+
+								client.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
+										new AsyncCallback(ReceiveMessage), state);
+								break;
+
+							case "image*":
+								message = state.sb.ToString().Substring(commandEnd + 1);
+								ReceiveImageHandler imgHandler = new ReceiveImageHandler(message);
+								Thread dialogThread = new Thread(() => imgHandler.ShowDialog());
+								dialogThread.SetApartmentState(ApartmentState.STA);
+								dialogThread.Start();
+								sendDone.WaitOne();
+								state.sb.Clear();
+								state.buffer = new byte[StateObject.BufferSize];
+								client.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
+										new AsyncCallback(ReceiveMessage), state);
+								break;
+
+						}
+
+
 					}
 				}
 				else
@@ -167,6 +187,7 @@ namespace tcpClient
 					data = length + data;
 					byte[] dataLength = Encoding.ASCII.GetBytes(data);
 					client.BeginSend(dataLength, 0, dataLength.Length, 0, new AsyncCallback(SendMessage), client);
+					sendDone.Set();
 
 				}
 			}
@@ -204,14 +225,34 @@ namespace tcpClient
 			if (Int32.TryParse(state.sb.ToString(), out bytesCount))
 			{
 				state.buffer = new byte[bytesCount];
+				string smth1 = state.sb.ToString();
 				state.sb.Clear();
 
-				incomingBytes = state.workSocket.Receive(state.buffer, 0, state.buffer.Length, 0);
-				state.sb.Append(Encoding.ASCII.GetString(state.buffer, 0, state.buffer.Length));
+				incomingBytes = state.workSocket.Receive(state.buffer, 0, state.workSocket.Available, 0);
+				state.sb.Append(Encoding.ASCII.GetString(state.buffer, 0, incomingBytes));
+				string smth = state.sb.ToString();
+
+				if (incomingBytes < state.buffer.Length)
+				{
+					ReadTillTheEnd(state, incomingBytes, state.buffer.Length);
+				}
+
+				string smth2 = state.sb.ToString();
 			}
 
 			return incomingBytes;
 		}
 
+		private static void ReadTillTheEnd(StateObject state, int incomingBytes, int bufferSize)
+		{
+			do
+			{
+				int availableBytes = state.workSocket.Available;
+				incomingBytes += state.workSocket.Receive(state.buffer, 0, state.workSocket.Available, 0);
+				state.sb.Append(Encoding.ASCII.GetString(state.buffer, 0, availableBytes));
+				string smtasdas = state.sb.ToString();
+			}
+			while (state.workSocket.Available > 0);
+		}
 	}
 }
