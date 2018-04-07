@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Models.Models;
+using Shared;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -58,8 +60,8 @@ namespace tcpServer
 
 			try
 			{
-				ServerServices.Send(handler, ServerServices.MessageBuilder("Commands: username/username, all/message, chronology/username, onlineUsers/" +
-					Environment.NewLine, ServerServices.GetOnlineUsers(),
+				ServerServices.Send(handler, SharedMethods.MessageBuilder("Commands: username/username, all/message, chronology/username, onlineUsers/, offlineUsers/" +
+					Environment.NewLine, "Online users: ", ServerServices.GetUsers(true),
 					Environment.NewLine, "Press enter after command and then write the variable for the command!!!", Environment.NewLine, "Connected! Please choose your username:"));
 				StateObject state = new StateObject();
 				state.workSocket = handler;
@@ -78,7 +80,6 @@ namespace tcpServer
 				Socket handler = (Socket)ar.AsyncState;
 				int bytesSent = handler.EndSend(ar);
 				Console.WriteLine(bytesSent.ToString());
-				ServerServices.sendDone.Set();
 			}
 			catch (SocketException e)
 			{

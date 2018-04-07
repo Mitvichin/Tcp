@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Models.Models;
+using Shared;
+using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -16,11 +18,6 @@ namespace tcpClient
 			new ManualResetEvent(false);
 		public static ManualResetEvent sendDone =
 			new ManualResetEvent(false);
-		private static ManualResetEvent receiveDone =
-			new ManualResetEvent(false);
-
-		private static string imgData = String.Empty;
-
 
 		public static void StartClient()
 		{
@@ -79,10 +76,9 @@ namespace tcpClient
 			}
 			catch (SocketException e)
 			{
-				Console.WriteLine("While connecting issue occurred! Please, restart the program." + e.ToString());
-				Console.WriteLine("Press any key to exit the program!");
-				Console.ReadLine();
-				Environment.Exit(0);
+				string message = SharedMethods.MessageBuilder("While connecting issue occurred! Please, restart the program.",
+					Environment.NewLine, "Press any key to exit the program!", Environment.NewLine, e.ToString());
+				CloseApp(message);
 			}
 		}
 
@@ -98,10 +94,9 @@ namespace tcpClient
 			}
 			catch (SocketException e)
 			{
-				Console.WriteLine("While receiving a connection issue occurred! Please, restart the program." + e.ToString());
-				Console.WriteLine("Press any key to exit the program!");
-				Console.ReadLine();
-				Environment.Exit(0);
+				string message = SharedMethods.MessageBuilder("While receiving a connection issue occurred! Please, restart the program.",
+					Environment.NewLine, "Press any key to exit the program!", Environment.NewLine, e.ToString());
+				CloseApp(message);
 			}
 		}
 
@@ -118,8 +113,7 @@ namespace tcpClient
 				{
 					state.sb.Clear();
 					state.sb.Append(Encoding.ASCII.GetString(state.buffer, 0, incomingBytes));
-					incomingBytes = Read(state, incomingBytes);
-
+					SharedMethods.Read(state, incomingBytes);
 
 					if (state.sb.Length > 1)
 					{
@@ -149,16 +143,13 @@ namespace tcpClient
 								Thread dialogThread = new Thread(() => imgHandler.ShowDialog());
 								dialogThread.SetApartmentState(ApartmentState.STA);
 								dialogThread.Start();
-								sendDone.WaitOne();
+
 								state.sb.Clear();
 								state.buffer = new byte[StateObject.BufferSize];
 								client.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
 										new AsyncCallback(ReceiveMessage), state);
 								break;
-
 						}
-
-
 					}
 				}
 				else
@@ -168,10 +159,9 @@ namespace tcpClient
 			}
 			catch (SocketException e)
 			{
-				Console.WriteLine("While receiving a connection issue occurred! Please, restart the program." + e.ToString());
-				Console.WriteLine("Press any key to exit the program!");
-				Console.ReadLine();
-				Environment.Exit(0);
+				string message = SharedMethods.MessageBuilder("While receiving a connection issue occurred! Please, restart the program.",
+					Environment.NewLine, "Press any key to exit the program!", Environment.NewLine, e.ToString());
+				CloseApp(message);
 			}
 		}
 
@@ -181,7 +171,6 @@ namespace tcpClient
 			{
 				if (!string.IsNullOrEmpty(data))
 				{
-
 					int bytes = Encoding.ASCII.GetByteCount(data);
 					string length = bytes.ToString("0000000000");
 					data = length + data;
@@ -193,10 +182,10 @@ namespace tcpClient
 			}
 			catch (SocketException e)
 			{
-				Console.WriteLine("Connection failure!(at send)");
-				Console.WriteLine("Press any key to exit the program!" + e.ToString());
-				Console.ReadLine();
-				Environment.Exit(0);
+
+				string message = SharedMethods.MessageBuilder("Connection failure while sending! Please, restart the program",
+					Environment.NewLine, "Press any key to exit the program!", Environment.NewLine, e.ToString());
+				CloseApp(message);
 			}
 		}
 
@@ -211,48 +200,17 @@ namespace tcpClient
 			}
 			catch (SocketException e)
 			{
-				Console.WriteLine("While sending a connection issue occurred! Please, restart the program");
-				Console.WriteLine("Press any key to exit the program!" + e.ToString());
-				Console.ReadLine();
-				Environment.Exit(0);
+				string message = SharedMethods.MessageBuilder("While sending a connection issue occurred! Please, restart the program",
+					Environment.NewLine, "Press any key to exit the program!", Environment.NewLine, e.ToString());
+				CloseApp(message);
 			}
 		}
 
-		private static int Read(StateObject state, int incomingBytes)
+		private static void CloseApp(string message)
 		{
-			int bytesCount = -1;
-
-			if (Int32.TryParse(state.sb.ToString(), out bytesCount))
-			{
-				state.buffer = new byte[bytesCount];
-				string smth1 = state.sb.ToString();
-				state.sb.Clear();
-
-				incomingBytes = state.workSocket.Receive(state.buffer, 0, state.workSocket.Available, 0);
-				state.sb.Append(Encoding.ASCII.GetString(state.buffer, 0, incomingBytes));
-				string smth = state.sb.ToString();
-
-				if (incomingBytes < state.buffer.Length)
-				{
-					ReadTillTheEnd(state, incomingBytes, state.buffer.Length);
-				}
-
-				string smth2 = state.sb.ToString();
-			}
-
-			return incomingBytes;
-		}
-
-		private static void ReadTillTheEnd(StateObject state, int incomingBytes, int bufferSize)
-		{
-			do
-			{
-				int availableBytes = state.workSocket.Available;
-				incomingBytes += state.workSocket.Receive(state.buffer, 0, state.workSocket.Available, 0);
-				state.sb.Append(Encoding.ASCII.GetString(state.buffer, 0, availableBytes));
-				string smtasdas = state.sb.ToString();
-			}
-			while (state.workSocket.Available > 0);
+			Console.WriteLine(message);
+			Console.ReadLine();
+			Environment.Exit(0);
 		}
 	}
 }

@@ -1,11 +1,12 @@
-﻿using System;
+﻿using Models.Models;
+using Shared;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace tcpServer
 {
@@ -16,8 +17,6 @@ namespace tcpServer
 		private static Dictionary<Socket, string> clients = new Dictionary<Socket, string>();
 		private static Dictionary<string, StringBuilder> chronologies = new Dictionary<string, StringBuilder>();
 		private static string basePath = @"C:\TCPServer\";
-
-		public static ManualResetEvent sendDone = new ManualResetEvent(false);
 
 		//register or log in
 		public static void SignIn(IAsyncResult ar)
@@ -88,9 +87,9 @@ namespace tcpServer
 				}
 
 			}
-			catch (SocketException)
+			catch (SocketException e)
 			{
-				CloseConnection(state, "Registration or signing in failed! Connection problem occurred.");
+				CloseConnection(state, SharedMethods.MessageBuilder("Registration or signing in failed! Connection problem occurred.", Environment.NewLine, e.ToString()));
 			}
 		}
 
@@ -109,10 +108,10 @@ namespace tcpServer
 					state.sb.Append(Encoding.ASCII.GetString(
 						state.buffer, 0, incomingBytes));
 
-					incomingBytes = Read(state, incomingBytes);
+					SharedMethods.Read(state, incomingBytes);
 					content = state.sb.ToString();
 
-					string message = MessageBuilder("[", DateTime.Now.Date.ToString("dd/MM/yyyy"), "][ALL] ", clients[handler], ":", content);
+					string message = SharedMethods.MessageBuilder("[", DateTime.Now.Date.ToString("dd/MM/yyyy"), "][ALL] ", clients[handler], ":", content);
 
 					User[] userCollection = new User[users.Count];
 					users.Values.CopyTo(userCollection, 0);
@@ -135,9 +134,9 @@ namespace tcpServer
 				}
 
 			}
-			catch (SocketException)
+			catch (SocketException e)
 			{
-				CloseConnection(state, "Send to all failed! Connection problem occurred.");
+				CloseConnection(state, SharedMethods.MessageBuilder("Send to all failed! Connection problem occurred.", Environment.NewLine, e.ToString()));
 			}
 		}
 
@@ -157,7 +156,7 @@ namespace tcpServer
 						state.buffer, 0, incomingBytes));
 
 
-					incomingBytes = Read(state, incomingBytes);
+					SharedMethods.Read(state, incomingBytes);
 
 					string message = state.sb.ToString();
 
@@ -192,6 +191,9 @@ namespace tcpServer
 							handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
 								new AsyncCallback(SendImage), state);
 							return;
+						case "offlineUsers/":
+							SendOfflineUsers(state);
+							return;
 					}
 				}
 				else
@@ -199,14 +201,34 @@ namespace tcpServer
 					throw new SocketException();
 				}
 			}
-			catch (SocketException)
+			catch (SocketException e)
 			{
-				CloseConnection(state, "Reading message failed! Connection problem occurred.");
+				CloseConnection(state, SharedMethods.MessageBuilder("Reading message failed! Connection problem occurred.", Environment.NewLine, e.ToString()));
+			}
+		}
+
+		private static void SendOfflineUsers(StateObject state)
+		{
+			Socket handler = state.workSocket;
+
+			try
+			{
+				Send(handler, SharedMethods.MessageBuilder("Offline users: ", GetUsers(false)));
+				state.buffer = new byte[StateObject.BufferSize];
+
+				handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
+				 new AsyncCallback(ReadIncomingMessage), state);
+			}
+			catch (SocketException e)
+			{
+				CloseConnection(state, SharedMethods.MessageBuilder("Connection problem occurred while geting online users!", Environment.NewLine, e.ToString()));
 			}
 		}
 
 		public static void Send(Socket handler, string data)
 		{
+			StateObject state = new StateObject() { buffer = new byte[10], sb = new StringBuilder(), workSocket = handler };
+
 			try
 			{
 				int bytes = Encoding.ASCII.GetByteCount(data);
@@ -217,24 +239,22 @@ namespace tcpServer
 				handler.BeginSend(dataLength, 0, dataLength.Length, 0,
 					new AsyncCallback(MessageDispatcher.SendMessage), handler);
 			}
-			catch (SocketException)
+			catch (SocketException e)
 			{
-				Console.WriteLine("Connection failure while sending!");
+				CloseConnection(state, SharedMethods.MessageBuilder("Connection failure while sending!", Environment.NewLine, e.ToString()));
 			}
 		}
 
 		//handles ordinary message
 		private static void ProcessMessage(string message, StateObject state)
 		{
-
 			User user = users[clients[state.workSocket]];
-			User conectedTO = users[clients[user.ConnectedTo]];
 
 			try
 			{
 				if (user.ConnectedTo != state.workSocket)
 				{
-					message = MessageBuilder("[", DateTime.Now.Date.ToString("dd/MM/yyyy"), "] ", clients[state.workSocket], ":", message);
+					message = SharedMethods.MessageBuilder("[", DateTime.Now.Date.ToString("dd/MM/yyyy"), "] ", clients[state.workSocket], ":", message);
 
 					Send(user.ConnectedTo, message);
 					CreateWriteChronology(message, user);
@@ -250,7 +270,7 @@ namespace tcpServer
 			}
 			catch (SocketException e)
 			{
-				CloseConnection(state, "Proccesing message failed!Connection problem occurred." + e.ToString());
+				CloseConnection(state, SharedMethods.MessageBuilder("Proccesing message failed!Connection problem occurred.", Environment.NewLine, e.ToString()));
 			}
 		}
 
@@ -270,7 +290,7 @@ namespace tcpServer
 					state.sb.Append(Encoding.ASCII.GetString(
 						state.buffer, 0, incomingBytes));
 
-					incomingBytes = Read(state, incomingBytes);
+					SharedMethods.Read(state, incomingBytes);
 					username = state.sb.ToString();
 
 
@@ -285,7 +305,7 @@ namespace tcpServer
 						}
 						else
 						{
-							Send(handler, MessageBuilder("Connecting to ", username, " failed!"));
+							Send(handler, SharedMethods.MessageBuilder("Connecting to ", username, " failed!"));
 						}
 					}
 					else
@@ -303,9 +323,9 @@ namespace tcpServer
 					throw new SocketException();
 				}
 			}
-			catch (SocketException)
+			catch (SocketException e)
 			{
-				CloseConnection(state, "Proccesing username failed! Connection problem occurred!");
+				CloseConnection(state, SharedMethods.MessageBuilder("Proccesing username failed! Connection problem occurred!", Environment.NewLine, e.ToString()));
 			}
 		}
 
@@ -316,7 +336,6 @@ namespace tcpServer
 			User user = users[clients[state.workSocket]];
 			string imgBase64 = "";
 
-
 			try
 			{
 				int incomingBytes = handler.EndReceive(ar);
@@ -326,14 +345,13 @@ namespace tcpServer
 					state.sb.Append(Encoding.ASCII.GetString(
 						state.buffer, 0, incomingBytes));
 
-					incomingBytes = Read(state, incomingBytes);
-
+					SharedMethods.Read(state, incomingBytes);
 
 					if (user.ConnectedTo != handler)
 					{
 						imgBase64 = state.sb.ToString();
+						Send(user.ConnectedTo, "Send image!");
 						Send(user.ConnectedTo, "image*" + imgBase64);
-						//Send(user.ConnectedTo, "Send image!");
 						CreateWriteChronology("Send image!", user);
 					}
 					else
@@ -351,9 +369,9 @@ namespace tcpServer
 					throw new SocketException();
 				}
 			}
-			catch (SocketException)
+			catch (SocketException e)
 			{
-				CloseConnection(state, "Sending image failed! Connection problem occurred!");
+				CloseConnection(state, SharedMethods.MessageBuilder("Sending image failed! Connection problem occurred!", Environment.NewLine, e.ToString()));
 			}
 
 		}
@@ -375,7 +393,7 @@ namespace tcpServer
 
 			if (String.IsNullOrEmpty(currentChronology) && !chronologies.ContainsKey(currentChronology))
 			{
-				currentChronology = MessageBuilder(user.Username, "_", clients[user.ConnectedTo]);
+				currentChronology = SharedMethods.MessageBuilder(user.Username, "_", clients[user.ConnectedTo]);
 				chronologies.Add(currentChronology, new StringBuilder());
 			}
 
@@ -385,7 +403,7 @@ namespace tcpServer
 				chronologies.Add(currentChronology, new StringBuilder());
 			}
 
-			chronologies[currentChronology].Append(MessageBuilder(message, Environment.NewLine));
+			chronologies[currentChronology].Append(SharedMethods.MessageBuilder(message, Environment.NewLine));
 
 			if (chronologies[currentChronology].Length > 20)
 			{
@@ -401,7 +419,7 @@ namespace tcpServer
 		{
 			StateObject state = (StateObject)ar.AsyncState;
 			Socket handler = state.workSocket;
-			string path = MessageBuilder(basePath, @"Chronologies\");
+			string path = SharedMethods.MessageBuilder(basePath, @"Chronologies\");
 			string[] chronologyNames = Directory.EnumerateFiles(path).Select(Path.GetFileName).ToArray();
 			User user = users[clients[handler]];
 			string username = "";
@@ -417,7 +435,7 @@ namespace tcpServer
 					state.sb.Append(Encoding.ASCII.GetString(
 						state.buffer, 0, incomingBytes));
 
-					incomingBytes = Read(state, incomingBytes);
+					SharedMethods.Read(state, incomingBytes);
 
 					username = state.sb.ToString();
 
@@ -429,10 +447,10 @@ namespace tcpServer
 						}
 					}
 
-					if (File.Exists(MessageBuilder(path, chronologyName)))
+					if (File.Exists(SharedMethods.MessageBuilder(path, chronologyName)))
 					{
-						chronologyContent = File.ReadAllText(MessageBuilder(path, chronologyName));
-						Send(handler, MessageBuilder("CHRONOLOGY: ", Environment.NewLine, chronologyContent));
+						chronologyContent = File.ReadAllText(SharedMethods.MessageBuilder(path, chronologyName));
+						Send(handler, SharedMethods.MessageBuilder("CHRONOLOGY: ", Environment.NewLine, chronologyContent));
 					}
 					else
 					{
@@ -449,9 +467,9 @@ namespace tcpServer
 					throw new SocketException();
 				}
 			}
-			catch (SocketException)
+			catch (SocketException e)
 			{
-				CloseConnection(state, "Proccesing username failed! Connection problem occurred!");
+				CloseConnection(state, SharedMethods.MessageBuilder("Proccesing username failed! Connection problem occurred!", Environment.NewLine, e.ToString()));
 			}
 		}
 
@@ -461,14 +479,14 @@ namespace tcpServer
 
 			try
 			{
-				Send(handler, GetOnlineUsers());
+				Send(handler, SharedMethods.MessageBuilder("Online users: ", GetUsers(true)));
 				state.buffer = new byte[StateObject.BufferSize];
 				handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
 				 new AsyncCallback(ReadIncomingMessage), state);
 			}
 			catch (SocketException e)
 			{
-				CloseConnection(state, "Connection problem occurred while geting online users!" + e.ToString());
+				CloseConnection(state, SharedMethods.MessageBuilder("Connection problem occurred while geting online users!", Environment.NewLine, e.ToString()));
 			}
 		}
 
@@ -482,12 +500,12 @@ namespace tcpServer
 
 			foreach (User user in users.Values)
 			{
-				if (user.ConnectedTo.Equals(state.workSocket))
+				if (user.ConnectedTo.Equals(state.workSocket) && user.Username != clients[state.workSocket])
 				{
 					user.ConnectedTo = user.Socket;
 					if (user.Online)
 					{
-						Send(user.Socket, MessageBuilder(clients[state.workSocket], " has disconnected!"));
+						Send(user.Socket, SharedMethods.MessageBuilder(clients[state.workSocket], " has disconnected!"));
 					}
 				}
 			}
@@ -495,73 +513,29 @@ namespace tcpServer
 			if (clients.ContainsKey(state.workSocket) && users.ContainsKey(clients[state.workSocket]))
 			{
 				users[clients[state.workSocket]].Online = false;
-				clients.Remove(state.workSocket);
 			}
-
 
 			Console.WriteLine(message);
 		}
 
-		public static string MessageBuilder(params string[] messageParts)
+
+
+		public static string GetUsers(bool userState)
 		{
-			StringBuilder sb = new StringBuilder();
-
-			foreach (string part in messageParts)
-			{
-				sb.Append(part);
-			}
-
-			return sb.ToString();
-		}
-
-		public static string GetOnlineUsers()
-		{
-			string onlineUsers = "Online users: ";
+			string userNames = "";
 
 			foreach (User user in users.Values)
 			{
-				if (user.Online)
+				if (user.Online == userState)
 				{
-					onlineUsers += user.Username + ", ";
+					userNames += SharedMethods.MessageBuilder(user.Username);
 				}
 			}
 
-			return onlineUsers;
+			return userNames;
 		}
 
-		private static int Read(StateObject state, int incomingBytes)
-		{
-			int bytesCount = -1;
 
-			if (Int32.TryParse(state.sb.ToString(), out bytesCount))
-			{
-				state.buffer = new byte[bytesCount];
-				state.sb.Clear();
-
-				incomingBytes = state.workSocket.Receive(state.buffer, 0, state.workSocket.Available, 0);
-				state.sb.Append(Encoding.ASCII.GetString(state.buffer, 0, incomingBytes));
-
-				if (incomingBytes < state.buffer.Length)
-				{
-					ReadTillTheEnd(state, incomingBytes, state.buffer.Length);
-				}
-
-			}
-
-			return incomingBytes;
-		}
-
-		private static void ReadTillTheEnd(StateObject state, int incomingBytes, int bufferSize)
-		{
-			do
-			{
-				int availableBytes = state.workSocket.Available;
-				incomingBytes += state.workSocket.Receive(state.buffer, 0, state.workSocket.Available, 0);
-				state.sb.Append(Encoding.ASCII.GetString(state.buffer, 0, availableBytes));
-				string smtasdas = state.sb.ToString();
-			}
-			while (state.workSocket.Available > 0);
-		}
 	}
 }
 

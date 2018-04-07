@@ -64,6 +64,14 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Models\Models.csproj">
+      <Project>{AF888EEB-CB7F-4297-8D2D-FCAB8A02BE63}</Project>
+      <Name>Models</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Shared\Shared.csproj">
+      <Project>{71A89926-8094-4DDA-BFDE-55F930936943}</Project>
+      <Name>Shared</Name>
+    </ProjectReference>
     <ProjectReference Include="..\tcpServer\tcpServer.csproj">
       <Project>{C071931E-EDA6-49E5-9A63-9916927C3466}</Project>
       <Name>tcpServer</Name>

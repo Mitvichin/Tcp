@@ -37,25 +37,28 @@ namespace testTCP
 
 		private void sendBtn_Click(object sender, EventArgs e)
 		{
-			Bitmap bmp = new Bitmap(pictureBox.Image);
-			byte[] imgBytes;
-			string imgBase64 = string.Empty;
-			//using (var ms = new MemoryStream())
-			//{
-			//	bmp.Save(ms, pictureBox.Image.RawFormat);
-			//	imgBytes = ms.ToArray();
-			//}
+			if (pictureBox.Image != null)
+			{
+				Bitmap bmp = new Bitmap(pictureBox.Image);
+				string imgBase64 = string.Empty;
+				ImageConverter ic = new ImageConverter();
+				byte[] buffer = (byte[])ic.ConvertTo(pictureBox.Image, typeof(byte[]));
+				imgBase64 = Convert.ToBase64String(
+					buffer,
+					Base64FormattingOptions.InsertLineBreaks);
 
-			ImageConverter ic = new ImageConverter();
-			byte[] buffer = (byte[])ic.ConvertTo(pictureBox.Image, typeof(byte[]));
-			imgBase64 = Convert.ToBase64String(
-				buffer,
-				Base64FormattingOptions.InsertLineBreaks);
-
-
-			Client.Send(client, imgBase64);
-			Client.sendDone.WaitOne();
-			Application.Exit();
+				Client.Send(client, imgBase64);
+				Client.sendDone.WaitOne();
+				Application.Exit();
+			}
+			else
+			{
+				string message = "You did not choose a picture!";
+				string caption = "Error Detected in Input";
+				MessageBoxButtons buttons = MessageBoxButtons.OK;
+				DialogResult result;
+				result = MessageBox.Show(message, caption, buttons);
+			}
 		}
 	}
 }

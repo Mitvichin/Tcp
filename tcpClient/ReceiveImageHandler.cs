@@ -18,25 +18,14 @@ namespace testTCP
 
 		private void saveBtn_Click(object sender, EventArgs e)
 		{
-
-
 			Bitmap imgBmp = new Bitmap(pictureBox.Image);
 			SaveFileDialog sfd = new SaveFileDialog();
-			sfd.Filter = "Images|*.png;*.bmp;*.jpg";
-			ImageFormat format = ImageFormat.Png;
+			sfd.Filter = "Image Files(*.jpg; *.jpeg; *.gif; *.bmp)|*.jpg; *.jpeg; *.gif; *.bmp";
+
 			if (sfd.ShowDialog() == DialogResult.OK)
 			{
-				string ext = System.IO.Path.GetExtension(sfd.FileName);
-				switch (ext)
-				{
-					case ".jpg":
-						format = ImageFormat.Jpeg;
-						break;
-					case ".bmp":
-						format = ImageFormat.Bmp;
-						break;
-				}
-				imgBmp.Save(sfd.FileName, format);
+
+				imgBmp.Save(sfd.FileName, pictureBox.Image.RawFormat);
 			}
 
 			Application.Exit();
@@ -49,6 +38,8 @@ namespace testTCP
 
 		private void ReceiveImageHandler_Load(object sender, EventArgs e)
 		{
+
+			Focus();
 			DisplayImg();
 		}
 

@@ -1,0 +1,6 @@
+D:\Tcp-master\Models\bin\Debug\Models.dll
+D:\Tcp-master\Models\bin\Debug\Models.pdb
+D:\Tcp-master\Models\obj\Debug\Models.csprojResolveAssemblyReference.cache
+D:\Tcp-master\Models\obj\Debug\Models.csproj.CoreCompileInputs.cache
+D:\Tcp-master\Models\obj\Debug\Models.dll
+D:\Tcp-master\Models\obj\Debug\Models.pdb

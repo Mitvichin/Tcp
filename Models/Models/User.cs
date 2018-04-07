@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading.Tasks;
 
-namespace tcpServer
+namespace Models.Models
 {
 	public class User
 	{
@@ -13,5 +10,6 @@ namespace tcpServer
 		public Socket Socket { get; set; }
 		public Socket ConnectedTo { get; set; }
 		public bool Online { get; set; }
+		public Dictionary<string, string> OfflineMessages { get; set; }
 	}
 }

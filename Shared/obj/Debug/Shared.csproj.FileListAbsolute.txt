@@ -1,0 +1,9 @@
+D:\Tcp-master\Shared\bin\Debug\Shared.dll
+D:\Tcp-master\Shared\bin\Debug\Shared.pdb
+D:\Tcp-master\Shared\bin\Debug\Models.dll
+D:\Tcp-master\Shared\bin\Debug\Models.pdb
+D:\Tcp-master\Shared\obj\Debug\Shared.csprojResolveAssemblyReference.cache
+D:\Tcp-master\Shared\obj\Debug\Shared.csproj.CoreCompileInputs.cache
+D:\Tcp-master\Shared\obj\Debug\Shared.csproj.CopyComplete
+D:\Tcp-master\Shared\obj\Debug\Shared.dll
+D:\Tcp-master\Shared\obj\Debug\Shared.pdb
