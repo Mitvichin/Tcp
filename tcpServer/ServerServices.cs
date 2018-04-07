@@ -55,7 +55,9 @@ namespace tcpServer
 							Username = username,
 							ConnectedTo = handler,
 							Online = true,
-							Socket = handler
+							Socket = handler,
+							OfflineMessages = new Dictionary<string, StringBuilder>()
+
 						};
 
 						if (!users.ContainsKey(user.Username))
@@ -76,6 +78,11 @@ namespace tcpServer
 							users[user.Username].Online = true;
 							users[user.Username].ConnectedTo = handler;
 							users[user.Username].Socket = handler;
+							if (clients.ContainsValue(user.Username))
+							{
+								Socket oldSocket = clients.FirstOrDefault(c => c.Value.Equals(user.Username)).Key;
+								clients.Remove(oldSocket);
+							}
 							clients.Add(handler, username);
 							Send(handler, "Logged as " + user.Username);
 						}
@@ -194,6 +201,9 @@ namespace tcpServer
 						case "offlineUsers/":
 							SendOfflineUsers(state);
 							return;
+						case "checkOfflineMessages/":
+							SendOfflineMessages(state);
+							return;
 					}
 				}
 				else
@@ -204,6 +214,20 @@ namespace tcpServer
 			catch (SocketException e)
 			{
 				CloseConnection(state, SharedMethods.MessageBuilder("Reading message failed! Connection problem occurred.", Environment.NewLine, e.ToString()));
+			}
+		}
+
+		private static void SendOfflineMessages(StateObject state)
+		{
+			Socket handler = state.workSocket;
+			User user = users[clients[handler]];
+
+			if (user.OfflineMessages.Count != 0)
+			{
+				foreach (StringBuilder sb in user.OfflineMessages.Values)
+				{
+					Send(user.Socket, SharedMethods.MessageBuilder("Offline messages: ", sb.ToString()));
+				}
 			}
 		}
 
@@ -252,12 +276,31 @@ namespace tcpServer
 
 			try
 			{
-				if (user.ConnectedTo != state.workSocket)
+				if (user.ConnectedTo != state.workSocket && clients.ContainsKey(user.ConnectedTo))
 				{
 					message = SharedMethods.MessageBuilder("[", DateTime.Now.Date.ToString("dd/MM/yyyy"), "] ", clients[state.workSocket], ":", message);
 
-					Send(user.ConnectedTo, message);
-					CreateWriteChronology(message, user);
+					if (!user.ConnectedTo.Connected)
+					{
+						User connectedUser = users.FirstOrDefault(u => u.Value.Username.Equals(clients[user.ConnectedTo])).Value;
+
+						if (connectedUser.OfflineMessages.ContainsKey(clients[state.workSocket]))
+						{
+							connectedUser.OfflineMessages[clients[state.workSocket]].Append(SharedMethods.MessageBuilder(message, Environment.NewLine));
+						}
+						else
+						{
+							connectedUser.OfflineMessages.Add(clients[state.workSocket], new StringBuilder());
+							connectedUser.OfflineMessages[clients[state.workSocket]].Append(SharedMethods.MessageBuilder(message, Environment.NewLine));
+						}
+						Send(user.Socket, "The user you are trying to message is currently offline and will receive the message once he is online!");
+					}
+					else
+					{
+						Send(user.ConnectedTo, message);
+						CreateWriteChronology(message, user);
+					}
+
 				}
 				else
 				{

@@ -10,6 +10,6 @@ namespace Models.Models
 		public Socket Socket { get; set; }
 		public Socket ConnectedTo { get; set; }
 		public bool Online { get; set; }
-		public Dictionary<string, string> OfflineMessages { get; set; }
+		public Dictionary<string, StringBuilder> OfflineMessages { get; set; }
 	}
 }
