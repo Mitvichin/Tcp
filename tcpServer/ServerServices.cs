@@ -227,6 +227,7 @@ namespace tcpServer
 				foreach (StringBuilder sb in user.OfflineMessages.Values)
 				{
 					Send(user.Socket, SharedMethods.MessageBuilder("Offline messages: ", sb.ToString()));
+					sb.Clear();
 				}
 			}
 		}
@@ -300,7 +301,6 @@ namespace tcpServer
 						Send(user.ConnectedTo, message);
 						CreateWriteChronology(message, user);
 					}
-
 				}
 				else
 				{

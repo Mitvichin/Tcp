@@ -60,7 +60,7 @@ namespace tcpServer
 
 			try
 			{
-				ServerServices.Send(handler, SharedMethods.MessageBuilder("Commands: username/username, all/message, chronology/username, onlineUsers/, offlineUsers/" +
+				ServerServices.Send(handler, SharedMethods.MessageBuilder("Commands: username/username, all/message, chronology/username, onlineUsers/, offlineUsers/, checkOfflineMessages/" +
 					Environment.NewLine, "Online users: ", ServerServices.GetUsers(true),
 					Environment.NewLine, "Press enter after command and then write the variable for the command!!!", Environment.NewLine, "Connected! Please choose your username:"));
 				StateObject state = new StateObject();
