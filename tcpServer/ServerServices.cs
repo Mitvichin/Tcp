@@ -17,6 +17,7 @@ namespace tcpServer
 		private static Dictionary<Socket, string> clients = new Dictionary<Socket, string>();
 		private static Dictionary<string, StringBuilder> chronologies = new Dictionary<string, StringBuilder>();
 		private static string basePath = @"C:\TCPServer\";
+		public static ManualResetEvent sendDone = new ManualResetEvent(false);
 
 		//register or log in
 		public static void SignIn(IAsyncResult ar)
@@ -202,7 +203,8 @@ namespace tcpServer
 							SendOfflineUsers(state);
 							return;
 						case "checkOfflineMessages/":
-							SendOfflineMessages(state);
+							handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
+								new AsyncCallback(SendOfflineMessages), state);
 							return;
 					}
 				}
@@ -217,18 +219,48 @@ namespace tcpServer
 			}
 		}
 
-		private static void SendOfflineMessages(StateObject state)
+		private static void SendOfflineMessages(IAsyncResult ar)
 		{
+			StateObject state = (StateObject)ar.AsyncState;
 			Socket handler = state.workSocket;
 			User user = users[clients[handler]];
-
-			if (user.OfflineMessages.Count != 0)
+			try
 			{
-				foreach (StringBuilder sb in user.OfflineMessages.Values)
+
+				int incomingBytes = handler.EndReceive(ar);
+
+				if (incomingBytes > 0)
 				{
-					Send(user.Socket, SharedMethods.MessageBuilder("Offline messages: ", sb.ToString()));
-					sb.Clear();
+					state.sb.Append(Encoding.ASCII.GetString(
+							state.buffer, 0, incomingBytes));
+
+					SharedMethods.Read(state, incomingBytes);
+
+					string username = state.sb.ToString();
+
+					if (user.OfflineMessages.ContainsKey(username))
+					{
+						Send(handler, SharedMethods.MessageBuilder("Offline messages: ", user.OfflineMessages[username].ToString());
+						user.OfflineMessages.Remove(username);
+					}
+					else
+					{
+						Send(handler, "You don't have messages from this user!");
+					}
+
+					state.sb.Clear();
+					state.buffer = new byte[StateObject.BufferSize];
+					handler.BeginReceive(state.buffer, 0, state.buffer.Length, 0,
+					 new AsyncCallback(ReadIncomingMessage), state);
 				}
+				else
+				{
+					throw new SocketException();
+				}
+			}
+			catch (SocketException e)
+			{
+				CloseConnection(state, SharedMethods.MessageBuilder("Connection problem occurred while checking offline messages!", Environment.NewLine, e.ToString()));
 			}
 		}
 
@@ -299,8 +331,8 @@ namespace tcpServer
 					else
 					{
 						Send(user.ConnectedTo, message);
-						CreateWriteChronology(message, user);
 					}
+					CreateWriteChronology(message, user);
 				}
 				else
 				{
