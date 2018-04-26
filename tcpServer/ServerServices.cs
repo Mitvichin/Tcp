@@ -240,7 +240,7 @@ namespace tcpServer
 
 					if (user.OfflineMessages.ContainsKey(username))
 					{
-						Send(handler, SharedMethods.MessageBuilder("Offline messages: ", user.OfflineMessages[username].ToString());
+						Send(handler, SharedMethods.MessageBuilder("Offline messages: ", user.OfflineMessages[username].ToString()));
 						user.OfflineMessages.Remove(username);
 					}
 					else
@@ -425,7 +425,7 @@ namespace tcpServer
 					if (user.ConnectedTo != handler)
 					{
 						imgBase64 = state.sb.ToString();
-						Send(user.ConnectedTo, "Send image!");
+						Send(user.ConnectedTo, SharedMethods.MessageBuilder("[", DateTime.Now.Date.ToString("dd/MM/yyyy"), "] ", user.Username, " send image!"));
 						Send(user.ConnectedTo, "image*" + imgBase64);
 						CreateWriteChronology("Send image!", user);
 					}
