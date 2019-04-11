@@ -456,6 +456,11 @@ namespace tcpServer
 		{
 			string currentChronology = "";
 			string path = basePath + @"Chronologies\";
+            if(Directory.Exists(path) == false)
+            {
+                Directory.CreateDirectory(path);
+            }
+
 			string[] chronologyNames = Directory.EnumerateFiles(path).Select(Path.GetFileName).ToArray();
 
 			foreach (string name in chronologyNames)

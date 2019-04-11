@@ -7,3 +7,12 @@ D:\Tcp-master\Shared\obj\Debug\Shared.csproj.CoreCompileInputs.cache
 D:\Tcp-master\Shared\obj\Debug\Shared.csproj.CopyComplete
 D:\Tcp-master\Shared\obj\Debug\Shared.dll
 D:\Tcp-master\Shared\obj\Debug\Shared.pdb
+C:\Users\Ilia Mitvichin\Desktop\Projects\Tcp\Tcp\Shared\bin\Debug\Shared.dll
+C:\Users\Ilia Mitvichin\Desktop\Projects\Tcp\Tcp\Shared\bin\Debug\Shared.pdb
+C:\Users\Ilia Mitvichin\Desktop\Projects\Tcp\Tcp\Shared\bin\Debug\Models.dll
+C:\Users\Ilia Mitvichin\Desktop\Projects\Tcp\Tcp\Shared\bin\Debug\Models.pdb
+C:\Users\Ilia Mitvichin\Desktop\Projects\Tcp\Tcp\Shared\obj\Debug\Shared.csprojAssemblyReference.cache
+C:\Users\Ilia Mitvichin\Desktop\Projects\Tcp\Tcp\Shared\obj\Debug\Shared.csproj.CoreCompileInputs.cache
+C:\Users\Ilia Mitvichin\Desktop\Projects\Tcp\Tcp\Shared\obj\Debug\Shared.csproj.CopyComplete
+C:\Users\Ilia Mitvichin\Desktop\Projects\Tcp\Tcp\Shared\obj\Debug\Shared.dll
+C:\Users\Ilia Mitvichin\Desktop\Projects\Tcp\Tcp\Shared\obj\Debug\Shared.pdb

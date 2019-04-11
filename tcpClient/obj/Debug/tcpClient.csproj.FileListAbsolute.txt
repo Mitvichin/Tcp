@@ -16,3 +16,21 @@ D:\Tcp-master\tcpClient\obj\Debug\tcpClient.csproj.CoreCompileInputs.cache
 D:\Tcp-master\tcpClient\obj\Debug\tcpClient.csproj.CopyComplete
 D:\Tcp-master\tcpClient\obj\Debug\testTCP.exe
 D:\Tcp-master\tcpClient\obj\Debug\testTCP.pdb
+C:\Users\Ilia Mitvichin\Desktop\Projects\Tcp\Tcp\tcpClient\bin\Debug\testTCP.exe.config
+C:\Users\Ilia Mitvichin\Desktop\Projects\Tcp\Tcp\tcpClient\bin\Debug\testTCP.exe
+C:\Users\Ilia Mitvichin\Desktop\Projects\Tcp\Tcp\tcpClient\bin\Debug\testTCP.pdb
+C:\Users\Ilia Mitvichin\Desktop\Projects\Tcp\Tcp\tcpClient\bin\Debug\Models.dll
+C:\Users\Ilia Mitvichin\Desktop\Projects\Tcp\Tcp\tcpClient\bin\Debug\Shared.dll
+C:\Users\Ilia Mitvichin\Desktop\Projects\Tcp\Tcp\tcpClient\bin\Debug\tcpServer.exe
+C:\Users\Ilia Mitvichin\Desktop\Projects\Tcp\Tcp\tcpClient\bin\Debug\Models.pdb
+C:\Users\Ilia Mitvichin\Desktop\Projects\Tcp\Tcp\tcpClient\bin\Debug\Shared.pdb
+C:\Users\Ilia Mitvichin\Desktop\Projects\Tcp\Tcp\tcpClient\bin\Debug\tcpServer.pdb
+C:\Users\Ilia Mitvichin\Desktop\Projects\Tcp\Tcp\tcpClient\bin\Debug\tcpServer.exe.config
+C:\Users\Ilia Mitvichin\Desktop\Projects\Tcp\Tcp\tcpClient\obj\Debug\tcpClient.csprojAssemblyReference.cache
+C:\Users\Ilia Mitvichin\Desktop\Projects\Tcp\Tcp\tcpClient\obj\Debug\testTCP.ReceiveImageHandler.resources
+C:\Users\Ilia Mitvichin\Desktop\Projects\Tcp\Tcp\tcpClient\obj\Debug\testTCP.SendImageHandler.resources
+C:\Users\Ilia Mitvichin\Desktop\Projects\Tcp\Tcp\tcpClient\obj\Debug\tcpClient.csproj.GenerateResource.cache
+C:\Users\Ilia Mitvichin\Desktop\Projects\Tcp\Tcp\tcpClient\obj\Debug\tcpClient.csproj.CoreCompileInputs.cache
+C:\Users\Ilia Mitvichin\Desktop\Projects\Tcp\Tcp\tcpClient\obj\Debug\tcpClient.csproj.CopyComplete
+C:\Users\Ilia Mitvichin\Desktop\Projects\Tcp\Tcp\tcpClient\obj\Debug\testTCP.exe
+C:\Users\Ilia Mitvichin\Desktop\Projects\Tcp\Tcp\tcpClient\obj\Debug\testTCP.pdb

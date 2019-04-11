@@ -4,3 +4,9 @@ D:\Tcp-master\Models\obj\Debug\Models.csprojResolveAssemblyReference.cache
 D:\Tcp-master\Models\obj\Debug\Models.csproj.CoreCompileInputs.cache
 D:\Tcp-master\Models\obj\Debug\Models.dll
 D:\Tcp-master\Models\obj\Debug\Models.pdb
+C:\Users\Ilia Mitvichin\Desktop\Projects\Tcp\Tcp\Models\bin\Debug\Models.dll
+C:\Users\Ilia Mitvichin\Desktop\Projects\Tcp\Tcp\Models\bin\Debug\Models.pdb
+C:\Users\Ilia Mitvichin\Desktop\Projects\Tcp\Tcp\Models\obj\Debug\Models.csprojAssemblyReference.cache
+C:\Users\Ilia Mitvichin\Desktop\Projects\Tcp\Tcp\Models\obj\Debug\Models.csproj.CoreCompileInputs.cache
+C:\Users\Ilia Mitvichin\Desktop\Projects\Tcp\Tcp\Models\obj\Debug\Models.dll
+C:\Users\Ilia Mitvichin\Desktop\Projects\Tcp\Tcp\Models\obj\Debug\Models.pdb

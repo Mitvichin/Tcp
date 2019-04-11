@@ -23,7 +23,7 @@ namespace tcpClient
 		{
 			try
 			{
-				IPHostEntry ipHostInfo = Dns.GetHostEntry("DESKTOP-587V0QC");
+				IPHostEntry ipHostInfo = Dns.GetHostEntry(System.Environment.MachineName);
 				IPAddress ipAddress = ipHostInfo.AddressList[0];
 				IPEndPoint remoteEP = new IPEndPoint(ipAddress, port);
 
